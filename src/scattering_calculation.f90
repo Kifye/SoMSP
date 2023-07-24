@@ -29,7 +29,7 @@ contains
         type(ModeCalculationResult), allocatable :: mode_res(:)
         type(ScatteringResult) :: res
         
-        real(knd) :: accuracy, dtheta, dphi, value, bucket(4,4)
+        real(knd) :: accuracy, dtheta, dphi, value, bucket(4,4), start, finish
         integer :: qlen, i, m, sph_lnum, real_maxm, j, dim
         complex(knd), dimension(2 * lnum, minm:maxm) :: solution_te, solution_tm
         integer :: basis_types(minm:maxm)
@@ -44,7 +44,7 @@ contains
         character(*), intent(in) :: scatmatr_file
 
         integer :: theta_bucket_size, theta_bucket_start, theta_bucket_end, current_size, current_end
-
+        call cpu_time(start)
         call res%initialize()
 
         99 format('#',1A5,' ', 1A12,' ',6A24)
@@ -82,7 +82,10 @@ contains
         solution_tm = 0
         solution_te = 0
         if (LOG_INFO) write(LOG_FD,*) '{INFO} start calculation with model '//model
+        call cpu_time(finish)
+        call log_time('begin calc', finish - start)
         do m = minm, maxm
+            call cpu_time(start)
             call typed_model%build_mode_queue(m, lnum, spherical_lnum, queue)
             if (LOG_INFO) write(LOG_FD,*) 
             qlen = size(queue)
@@ -90,18 +93,23 @@ contains
                 cycle
             endif
             call log_node_queue(queue)
-
+            call cpu_time(finish)
+            call log_time('prepare', finish - start)
+            call cpu_time(start)
             accuracy = 0
             mode_res = calculate_m(scattering_context, queue, m, lnum, sph_lnum)
-
+            call cpu_time(finish)
+            call log_time('main calc', finish - start)
+            call cpu_time(start)
             do i = 1, qlen
                 if (queue(i)%to_res) then
                     accuracy = max(accuracy, res%update_and_get_accuracy(queue(i)%info, mode_res(i)%factors))
                 endif
             enddo
-
+            call cpu_time(finish)
+            call log_time('check acc', finish - start)
             call typed_model%print_mode_row(m, mode_res)
-
+            call cpu_time(start)
             if (need_indicatrix) then
                 solutions = typed_model%solution_places(m)
                 do i = 1, size(solutions)
@@ -118,7 +126,8 @@ contains
                 enddo
 
             endif
-
+            call cpu_time(finish)
+            call log_time('check ampl', finish - start)
             if (size(queue) > 0 .and. accuracy < MIN_M_RATIO) then
                 real_maxm = m
                 exit
@@ -130,11 +139,13 @@ contains
             return
         endif
 
-
-        100 format('#',2A8,' ',6A24)
+        call cpu_time(start)
+        100 format('#',' ',6A24)
         101 format(' ',2F8.2,' ',6F24.15)
         write(SCAT_MATR_FD,100) 'theta', 'phi', &
         'F_{11}', 'F_{21}', 'F_{33}', 'F_{43}'
+        ! write(*,100) 'theta', 'phi', &
+        ! 'F_{11}', 'F_{21}', 'F_{33}', 'F_{43}'
         call print_scattering_matrix_bucket(&
         theta_bucket_size, scattering_context%directions%thetas(theta_bucket_start:theta_bucket_end), &
         nphi, scattering_context%directions%phis, ampl)
@@ -154,7 +165,8 @@ contains
         current_size, scattering_context%directions%thetas(theta_bucket_start:current_end), &
         nphi, scattering_context%directions%phis, ampl(:,:,:,1:current_end))
         enddo
-
+        call cpu_time(finish)
+        call log_time('rest scat matr', finish - start)
         deallocate(typed_model)
         if (allocated(solutions)) deallocate(solutions)
         if (need_indicatrix) close(SCAT_MATR_FD)
@@ -166,17 +178,17 @@ contains
         complex(knd), dimension(2,2,nphi, ntheta) :: ampl
         real(knd) :: bucket(4,4), start, finish
         integer :: i, j
-        101 format(' ',2F8.2,' ',4F24.15)
+        101 format(' ',6F32.18)
         if (LOG_BLOCKS) write(LOG_FD, *) '{BLOCK}{BEGIN} calculate scattering matrix for bucket'
         call cpu_time(start)
-        do i = 1, ntheta
-            do j = 1, nphi
+        do j = 1, nphi
+            do i = 1, ntheta
                 bucket = get_scattering_matrix(ampl(:,:,j,i))
                 write(SCAT_MATR_FD, 101) thetas(i)%value * 180q0 / PI, &
                     phis(j)%value * 180q0 / PI, &
                         bucket(1,1), bucket(2,1), bucket(3,3), bucket(4,3)
-                ! write(*,'(4F24.15)') thetas(i)%value * 180q0 / PI, &
-                ! phis(j)%value * 180q0 / PI, bucket
+                ! write(*,'(6F32.18)') thetas(i)%value * 180q0 / PI, &
+                ! phis(j)%value * 180q0 / PI, bucket(1,1), bucket(2,1), bucket(3,3), bucket(4,3)
             end do
         end do
         call cpu_time(finish)
@@ -193,6 +205,7 @@ contains
         type(ComputationContext) :: computation_context
 
         integer :: len, i
+        real(knd) :: start, finish
 
         len = size(queue)
 
@@ -203,12 +216,16 @@ contains
             allocate(results(len))
         endif
 
+        call cpu_time(start)
         if (LOG_BLOCKS) write(LOG_FD, *) '{BLOCK}{BEGIN} calculate spheroidal functions'
         call computation_context%initialize(m, lnum, spherical_lnum, scattering_context)
         if (LOG_BLOCKS) write(LOG_FD, *) '{BLOCK}{END} calculate spheroidal functions'
-
+        call cpu_time(finish)
+        call log_time('initialize context', finish - start)
+        call cpu_time(start)
         call calculate_mode_chain(scattering_context, computation_context, queue, results)
-
+        call cpu_time(finish)
+        call log_time('calculate chain', finish - start)
     end function calculate_m
 
     subroutine calculate_mode_chain(scattering_context, computation_context, queue, results)
@@ -272,12 +289,14 @@ contains
 
         complex(knd), allocatable :: initial(:)
         type(ModeFunctors) :: funcs
+        real(knd) :: start, finish
 
         call res%initialize(current_node%get_matrix_size())
-
+        call cpu_time(start)
         call calculate_mode_tmatrix(global_context, base_context, current_node, res%tmatrix, old_node, old_tmatrix)
-
-
+        call cpu_time(finish)
+        call log_time('calculate_mode_tmatrix', finish - start)
+        call cpu_time(start)
         if (current_node%need_calc) then
             funcs = get_mode_functions(current_node%info)
             ! allocates initial
@@ -289,7 +308,8 @@ contains
             
             deallocate(initial)
         endif
-        
+        call cpu_time(finish)
+        call log_time('calculate_mode_factors', finish - start)
     end subroutine calculate_mode
 
     subroutine calculate_tmatrix_directly(scattering_context, computation_context, new_mode, new_tmatrix)

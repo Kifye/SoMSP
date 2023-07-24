@@ -164,7 +164,8 @@ contains
         enddo
 
         shape => computation_context%scattering_context%scatterer%shape
-        ext = convertCtoQ(-ext * 4q0 * PI / calculation_point%k ** 2, shape%spheroidal_type, shape%rv, shape%ab, shape%alpha%value)
+        ext = convertCtoQ(-ext * 4.0_knd * PI / calculation_point%k ** 2, shape%spheroidal_type, &
+        shape%rv, shape%ab, shape%alpha%value)
         ! write(*,*) 'ext2 = ', ext
     end function get_extinction_factor_far_pq
 
@@ -194,7 +195,7 @@ contains
         enddo
 
         shape => computation_context%scattering_context%scatterer%shape
-        ext = convertCtoQ(-ext * 4q0 * PI / calculation_point%k ** 2 * alpha%angle_sin, &
+        ext = convertCtoQ(-ext * 4.0_knd * PI / calculation_point%k ** 2 * alpha%angle_sin, &
         shape%spheroidal_type, shape%rv, shape%ab, shape%alpha%value)
         if (m == 0) then
             ext = ext / 2
@@ -219,7 +220,7 @@ contains
             sca = sca + abs(solution(i)) ** 2! / legendre%coef(i)
         end do
         shape => computation_context%scattering_context%scatterer%shape
-        sca = convertCtoQ(sca * 2q0 * PI / calculation_point%k**2, shape%spheroidal_type, shape%rv, shape%ab, shape%alpha%value)
+        sca = convertCtoQ(sca * 2.0_knd * PI / calculation_point%k**2, shape%spheroidal_type, shape%rv, shape%ab, shape%alpha%value)
 
     end function get_scattering_factor_far_pq
 
@@ -333,7 +334,7 @@ contains
         shape => computation_context%scattering_context%scatterer%shape
         sca = convertCtoQ(sca * PI / k1 ** 2, shape%spheroidal_type, shape%rv, shape%ab, shape%alpha%value)
         if (legendre%m == 0) then
-        sca = sca / 2q0
+        sca = sca / 2.0_knd
         end if
 
     end function get_scattering_factor_far_uv

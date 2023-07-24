@@ -34,9 +34,13 @@ contains
         ri(1:nol) = [(cmplx(real(ri_in(i), knd), imag(ri_in(i)), knd), i=1,nol)]
         lnum = lnum_in
         spherical_lnum = lnum_in
-        if (lnum < 2) then
-            lnum = 2
-            spherical_lnum = 2;
+        if (mod(lnum_in, 2) == 1) then
+            lnum = lnum_in + 1
+            spherical_lnum = lnum_in + 1
+        endif
+        if (lnum < 8) then
+            lnum = 8
+            spherical_lnum = 8;
         endif
         m = m_in
 
@@ -73,15 +77,15 @@ contains
         
         mode_res = calculate_m(global_context, queue, m, lnum, spherical_lnum)
 
-        call log_mode_factors('Q SPH_TM', mode_res(1)%factors)
+        ! call log_mode_factors('Q SPH_TM', mode_res(1)%factors)
         res(1:lnum_in, 1:lnum_in) = transpose(mode_res(result_num)%tmatrix(1:lnum_in, 1:lnum_in))
         res(lnum_in + 1:2 *lnum_in, lnum_in + 1:2 *lnum_in) = &
-            transpose(mode_res(result_num)%tmatrix(lnum_in + 1:2 *lnum_in, lnum_in + 1:2 *lnum_in))
-        res(1:lnum_in, lnum_in + 1:2 *lnum_in) = -transpose(mode_res(result_num)%tmatrix(lnum_in + 1:2 *lnum_in, 1:lnum_in))
-        res(lnum_in + 1:2 *lnum_in, 1:lnum_in) = -transpose(mode_res(result_num)%tmatrix(1:lnum_in, lnum_in + 1:2 *lnum_in))
+            transpose(mode_res(result_num)%tmatrix(lnum + 1:lnum + lnum_in, lnum + 1:lnum + lnum_in))
+        res(1:lnum_in, lnum_in + 1:2 *lnum_in) = -transpose(mode_res(result_num)%tmatrix(lnum + 1:lnum + lnum_in, 1:lnum_in))
+        res(lnum_in + 1:2 *lnum_in, 1:lnum_in) = -transpose(mode_res(result_num)%tmatrix(1:lnum_in, lnum + 1:lnum + lnum_in))
         ! res = transpose(mode_res(result_num)%tmatrix(1:2*lnum_in, 1:2*lnum_in))
-        write(*,*) 'inside te result = ', mode_res(1)%tmatrix(:,1)
-        write(*,*) 'inside result = ', res(:,1)
+        ! write(*,*) 'inside te result = ', mode_res(1)%tmatrix(:,1)
+        ! write(*,*) 'inside result = ', res(:,1)
         do i = 1, size(queue)
             if (allocated(queue(i)%previous)) deallocate(queue(i)%previous)
             call delete_mode_calculation_result(mode_res(i))

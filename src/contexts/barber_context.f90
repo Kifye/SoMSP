@@ -74,6 +74,7 @@ contains
 
         legendre_coef = calculate_legendre_coef(m, lnum + 1)
 
+        call cpu_time(start)
         if (m == 0) then
             do i = 0, lnum - 1
                 if (i > 0) then
