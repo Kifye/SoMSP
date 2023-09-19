@@ -46,7 +46,7 @@ contains
         complex(knd) :: A(n, n), L(n, n), U(n, n), P(n, n), v, x(n, n), y(n, n)
         !  if abs(a(i,i)) < EPS it is considered to be =0 and
         !  hence the matrix is degenerate
-        real(knd), parameter :: EPS = 1q-32
+        real(knd), parameter :: EPS = 1e-32_knd
         complex(knd) :: v1, v2
 
         U = A
@@ -81,7 +81,7 @@ contains
             !            do i = 1, n
             !                write(*,*) y(i,:)
             !            end do
-            L(k, k) = cmplx(1q0, 0q0, knd)
+            L(k, k) = cmplx(1.0, 0.0, knd)
 
             if (abs(u(k, k)) < EPS) then
                 do i = k + 1, n
@@ -254,9 +254,9 @@ contains
         complex(knd) :: A(n, n), L(n, n), U(n, n), P(n, n), res(n, n), res_low(n), det, mul
         !  if abs(a(i,i)) < EPS it is considered to be =0 and
         !  hence the matrix is degenerate
-        real(knd), parameter :: EPS = 1q-32
+        real(knd), parameter :: EPS = 1e-32_knd
 
-        det = 1q0
+        det = 1.0_knd
 
         res = A
 
@@ -329,8 +329,8 @@ contains
         complex(knd) :: A(n, n)
         real(knd) :: rel_diff, abs_diff
 
-        rel_diff = 0q0
-        abs_diff = 0q0
+        rel_diff = 0.0_knd
+        abs_diff = 0.0_knd
         do i = 2, n
             !			do j = i + 1, n
             !				if (cqabs(A(i,j) + A(j,i)) > 1q-31) then
@@ -354,8 +354,8 @@ contains
         complex(knd), intent(in) :: A(n, n)
         real(knd), intent(out) :: rel_diff, abs_diff
 
-        rel_diff = 0q0
-        abs_diff = 0q0
+        rel_diff = 0.0_knd
+        abs_diff = 0.0_knd
         do i = 2, n
             abs_diff = max(abs_diff, abs(A(i, 1) - A(1, i)))
             rel_diff = max(rel_diff, abs(A(i, 1) - A(1, i)) / abs(A(i, 1) + A(1, i)))

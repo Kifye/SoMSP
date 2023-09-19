@@ -78,7 +78,7 @@ contains
 
     integer function get_full_function_size(matrix_size, spherical_lnum)
         integer, intent(in) :: matrix_size, spherical_lnum
-        get_full_function_size = max(aint(REVERSE_MATRIX_SIZE_RATIO * matrix_size), 1.0 * spherical_lnum)
+        get_full_function_size = max(aint(REVERSE_MATRIX_SIZE_RATIO * matrix_size), 1.0 * spherical_lnum) * 2
     end function get_full_function_size
 
 end module constants

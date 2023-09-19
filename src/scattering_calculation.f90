@@ -31,7 +31,7 @@ contains
         
         real(knd) :: accuracy, dtheta, dphi, value, bucket(4,4)
         integer :: qlen, i, m, sph_lnum, real_maxm, j, dim
-        complex(knd), dimension(2 * lnum, minm:maxm) :: solution_te, solution_tm
+        complex(knd), dimension(4 * lnum, minm:maxm) :: solution_te, solution_tm
         integer :: basis_types(minm:maxm)
         integer :: ntheta, nphi
         complex(knd), dimension(2,2,scattering_context%directions%nphi,scattering_context%directions%ntheta) :: ampl, update
@@ -229,11 +229,12 @@ contains
                     queue(queue(i)%previous(1))%info == MODE_FAR_TE_PQ .and.  &
                     queue(queue(i)%previous(2))%info == MODE_FAR_TM_PQ, &
                     'only far tm and te modes are united into one to transform to barber')
-                call combine_tmatrices(results(queue(i)%previous(1))%tmatrix, results(queue(i)%previous(2))%tmatrix, &
-                    results(i)%tmatrix)
+                    call assert(.false., 'not implemented nz combination')
+                ! call combine_tmatrices(results(queue(i)%previous(1))%tmatrix, results(queue(i)%previous(2))%tmatrix, &
+                !     results(i)%tmatrix)
             endif
 
-            call log_matrix(queue(i)%info%to_string(), results(i)%tmatrix)
+            call log_nzmatrix2(queue(i)%info%to_string(), results(i)%tmatrix)
             if (LOG_BLOCKS) write(LOG_FD, *) '{BLOCK}{END} calculate node ', i
         enddo
     end subroutine calculate_mode_chain
@@ -265,7 +266,7 @@ contains
         type(ScatteringContext), intent(in) :: global_context
         type(ComputationContext), intent(inout) :: base_context
         type(Node), optional, intent(in) :: old_node
-        complex(knd), optional, intent(in) :: old_tmatrix(:,:)
+        type(NoZeroesMatrix), optional, intent(in) :: old_tmatrix(:,:)
         type(ModeCalculationResult), intent(out) :: res
 
         complex(knd), allocatable :: initial(:)
@@ -280,7 +281,9 @@ contains
             funcs = get_mode_functions(current_node%info)
             ! allocates initial
             call funcs%initial_calculator(base_context, current_node%item, initial)
-            res%solution = matmul(res%tmatrix, initial)
+            res%solution = res%tmatrix * initial
+            write(LOG_FD,*) 'initial = ', initial
+            write(LOG_FD,*) 'solution = ', res%solution
 ! 
             res%factors%Qext = funcs%extinction_calculator(base_context, current_node%item, res%solution)
             res%factors%Qsca = funcs%scattering_calculator(base_context, current_node%item, res%solution)
@@ -294,7 +297,7 @@ contains
         type(ScatteringContext), intent(in) :: scattering_context
         type(ComputationContext), intent(inout) :: computation_context
         type(Node), intent(in) :: new_mode
-        complex(knd), intent(out) :: new_tmatrix(:,:)
+        type(NoZeroesMatrix), intent(out) :: new_tmatrix(:,:)
 
         type(SpheroidalContext), pointer :: context
 
@@ -326,16 +329,16 @@ contains
         type(ScatteringContext), intent(in) :: scattering_context
         type(ComputationContext), intent(inout) :: computation_context
         type(Node), intent(in) :: new_node
-        complex(knd), intent(out) :: new_tmatrix(:,:)
+        type(NoZeroesMatrix), intent(out) :: new_tmatrix(:,:)
         type(Node), optional, intent(in) :: old_node
-        complex(knd), optional, intent(in) :: old_tmatrix(:,:)
+        type(NoZeroesMatrix), optional, intent(in) :: old_tmatrix(:,:)
 
         call assert(present(old_node) .eqv. present(old_tmatrix), 'only one of old mode and tmatrix is present')
 
         if (.not. present(old_node)) then
             call calculate_tmatrix_directly(scattering_context, computation_context, new_node, new_tmatrix)
         else
-            call convert_tmatrix(computation_context, old_node, new_node, old_tmatrix, new_tmatrix)
+            ! call convert_tmatrix(computation_context, old_node, new_node, old_tmatrix, new_tmatrix)
         endif
 
     end subroutine calculate_mode_tmatrix

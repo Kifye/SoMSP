@@ -4,6 +4,7 @@ module utils
     use regime
     use constants
     use geometry
+    use no_zeroes
     implicit none
 
     real(knd), parameter :: LOWEST_UPDATE = 1.0e-128_knd
@@ -73,7 +74,8 @@ module utils
 
     type :: ModeCalculationResult
         type(ModeFactors) :: factors
-        complex(knd), allocatable :: tmatrix(:,:), solution(:)
+        type(NoZeroesMatrix), allocatable :: tmatrix(:,:)
+        complex(knd), allocatable :: solution(:)
     contains
         procedure :: initialize => initialize_mode_calculation_result
         final :: delete_mode_calculation_result
@@ -103,19 +105,28 @@ module utils
     end interface
 
 contains
+    function to_string(n)
+        character(len=5) :: str
+        character(len=5) :: to_string
+        integer :: n
+
+        write (str, "(I5)") n
+        to_string = trim(str)
+    end function to_string
     character(64) function print_mode_item(this) result(res)
         class(ModeItem), intent(in) :: this
 
         write(res, *) 'm = ', this%m, 'lnum = ', this%lnum
     end function print_mode_item
 
-    integer function get_matrix_size_by_node(this)
+    function get_matrix_size_by_node(this) result(res)
         class(Node), intent(in) :: this
+        integer :: res(2)
 
         if (this%info%basis_type == PQ) then
-            get_matrix_size_by_node = this%item%lnum
+            res = [this%item%lnum, 1]
         else
-            get_matrix_size_by_node = this%item%lnum * 2
+            res = [this%item%lnum * 2, 2]
         endif
     end function get_matrix_size_by_node
 
@@ -148,16 +159,24 @@ contains
 
     subroutine initialize_mode_calculation_result(this, ts)
         class(ModeCalculationResult), intent(out) :: this
-        integer, intent(in) :: ts
+        integer, intent(in) :: ts(2)
 
         call this%factors%initialize()
 
-        if (allocated(this%tmatrix) .and. (size(this%tmatrix(:,1)) /= ts)) then
-            deallocate(this%tmatrix, this%solution)
+        if (allocated(this%tmatrix) .and. (size(this%tmatrix(:,1)) /= ts(2))) then
+            deallocate(this%tmatrix)
         endif
 
         if (.not. allocated(this%tmatrix)) then
-            allocate(this%tmatrix(ts, ts), this%solution(ts))
+            allocate(this%tmatrix(ts(2),ts(2)))
+        endif
+
+        if (allocated(this%solution) .and. size(this%solution) /= ts(1)) then
+            deallocate(this%solution)
+        endif
+
+        if (.not. allocated(this%solution)) then
+            allocate(this%solution(ts(1)))
         endif
     end subroutine initialize_mode_calculation_result
 
@@ -182,6 +201,7 @@ contains
             write(LOG_FD,*) message
             write(*,*) 'assert failed: ', message, ' see detailes in scattering.log'
             close(LOG_FD)
+            call backtrace()
             call exit(1)
         endif
 

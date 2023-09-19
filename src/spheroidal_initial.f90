@@ -20,7 +20,7 @@ contains
         integer :: i, lnum
         type(SpheroidalContext), pointer :: context
 
-        lnum = mode_item%lnum
+        lnum = 2 * mode_item%lnum
 
         if (allocated(initial) .and. size(initial) /= lnum) then
             deallocate(initial)
@@ -30,7 +30,7 @@ contains
             allocate(initial(lnum))
         endif
 
-        context => computation_context%get_spheroidal_context(1, mode_item%m, lnum, lnum)
+        context => computation_context%get_spheroidal_context(1, mode_item%m, lnum, lnum / 2)
 
         do i = 1, lnum
             initial(i) = -2q0 * IDEG(mod(i, 4)) * context%layers(0,1)%s1(i, 1)
@@ -52,7 +52,7 @@ contains
         real(knd) :: coefficient, alpha, k
         type(SpheroidalContext), pointer :: context
 
-        lnum = mode_item%lnum
+        lnum = 2 * mode_item%lnum
 
         if (allocated(initial) .and. size(initial) /= 2 * lnum) then
             deallocate(initial)
@@ -65,7 +65,7 @@ contains
         initial = 0
         k = computation_context%scattering_context%calculation_point%k
 
-        context => computation_context%get_spheroidal_context(1, mode_item%m, lnum, lnum)
+        context => computation_context%get_spheroidal_context(1, mode_item%m, lnum, lnum / 2)
 
         if (abs(computation_context%scattering_context%directions%alpha%value) > 1q-6) then
             coefficient = context%layers(0,1)%spheroidal_type * 4.0q0 / (&

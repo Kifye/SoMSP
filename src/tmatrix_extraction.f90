@@ -72,11 +72,13 @@ contains
         mode_res = calculate_m(global_context, queue, m, lnum, spherical_lnum)
 
         call log_mode_factors('Q SPH_TM', mode_res(1)%factors)
-        res(1:lnum_in, 1:lnum_in) = transpose(mode_res(result_num)%tmatrix(1:lnum_in, 1:lnum_in))
+        res(1:lnum_in, 1:lnum_in) = transpose(to_normal(mode_res(result_num)%tmatrix(1:lnum_in, 1:lnum_in)))
         res(lnum_in + 1:2 *lnum_in, lnum_in + 1:2 *lnum_in) = &
-            transpose(mode_res(result_num)%tmatrix(lnum_in + 1:2 *lnum_in, lnum_in + 1:2 *lnum_in))
-        res(1:lnum_in, lnum_in + 1:2 *lnum_in) = -transpose(mode_res(result_num)%tmatrix(lnum_in + 1:2 *lnum_in, 1:lnum_in))
-        res(lnum_in + 1:2 *lnum_in, 1:lnum_in) = -transpose(mode_res(result_num)%tmatrix(1:lnum_in, lnum_in + 1:2 *lnum_in))
+            transpose(to_normal(mode_res(result_num)%tmatrix(lnum_in + 1:2 *lnum_in, lnum_in + 1:2 *lnum_in)))
+        res(1:lnum_in, lnum_in + 1:2 *lnum_in) = -transpose(&
+        to_normal(mode_res(result_num)%tmatrix(lnum_in + 1:2 *lnum_in, 1:lnum_in)))
+        res(lnum_in + 1:2 *lnum_in, 1:lnum_in) = -transpose(&
+        to_normal(mode_res(result_num)%tmatrix(1:lnum_in, lnum_in + 1:2 *lnum_in)))
         ! res = transpose(mode_res(result_num)%tmatrix(1:2*lnum_in, 1:2*lnum_in))
         write(*,*) 'inside result = ', res(:,1)
         do i = 1, size(queue)

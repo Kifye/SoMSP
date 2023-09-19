@@ -34,7 +34,7 @@ contains
         real(knd), intent(in) :: xv, ab
         complex(knd), intent(in) :: ri
 
-        size_of_matrices = aint(get_geom_a(f, xv, ab) * max(1.2, real(ri))) + 8
+        size_of_matrices = (aint(get_geom_a(f, xv, ab) * max(1.2, real(ri))) + 8) / 2
         if (mod(size_of_matrices, 2) == 1) then
             size_of_matrices = size_of_matrices + 1
         end if

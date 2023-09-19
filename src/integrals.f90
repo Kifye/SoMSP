@@ -4,6 +4,7 @@ module integrals
     use regime
     use spheroidal
     use constants
+    use no_zeroes
     implicit none
     integer, parameter :: bucket = 20
     real(knd), parameter :: accuracy = 1d-32
@@ -134,8 +135,9 @@ contains
                 ((2 * r + 2 * m + 3) * (2 * r + 2 * m + 5))
     end function omega_c_upper
 
-    subroutine single_dep_integral(Int, m, First, Second, mult_coef, middle)
-        complex(knd), intent(out) :: Int(:,:)
+    subroutine single_dep_integral(nzint, m, First, Second, mult_coef, middle)
+        type(NoZeroesMatrix), intent(inout) :: nzint
+        complex(knd) :: Int(nzint%ms * 2, nzint%ms * 2)
         integer, intent(in) :: m
         complex(knd), intent(in) :: First(0:,:), Second(0:,:)
         real(knd), intent(in) :: mult_coef(0:)
@@ -176,6 +178,8 @@ contains
                 enddo
             enddo
         enddo
+
+        call nzint%assign(ms / 2, Int, 1)
         call cpu_time(finish)
         ! write(*,*) 'time = ', finish - start
         !        call log_matrix(FILE_DESCRIPTOR(WARNING), 'Delta', Delta, .false., matrix_size)
@@ -183,8 +187,9 @@ contains
 
     end subroutine single_dep_integral
 
-    subroutine double_dep_integral(Int, m, First, Second, mult_coef, lower, upper)
-        complex(knd), intent(out) :: Int(:,:)
+    subroutine double_dep_integral(nzint, m, First, Second, mult_coef, lower, upper)
+        type(NoZeroesMatrix), intent(inout) :: nzint
+        complex(knd) :: Int(nzint%ms * 2, nzint%ms * 2)
         integer, intent(in) :: m
         complex(knd), intent(in) :: First(0:,:), Second(0:,:)
         real(knd), intent(in) :: mult_coef(0:)
@@ -229,6 +234,7 @@ contains
                 enddo
             enddo
         enddo
+        call nzint%assign(ms / 2, Int, -1)
         call cpu_time(finish)
         ! write(*,*) 'time = ', finish - start
         !        call log_matrix(FILE_DESCRIPTOR(WARNING), 'Delta', Delta, .false., matrix_size)
@@ -236,8 +242,9 @@ contains
 
     end subroutine double_dep_integral
 
-    subroutine triple_dep_integral(Int, m, First, Second, mult_coef, lower, middle, upper)
-        complex(knd), intent(out) :: Int(:,:)
+    subroutine triple_dep_integral(nzint, m, First, Second, mult_coef, lower, middle, upper)
+        type(NoZeroesMatrix), intent(inout) :: nzint
+        complex(knd) :: Int(nzint%ms * 2, nzint%ms * 2)
         integer, intent(in) :: m
         complex(knd), intent(in) :: First(0:,:), Second(0:,:)
         real(knd), intent(in) :: mult_coef(0:)
@@ -282,6 +289,7 @@ contains
                 enddo
             enddo
         enddo
+        call nzint%assign(ms / 2, Int, 1)
         call cpu_time(finish)
         ! write(*,*) 'time = ', finish - start
         !        call log_matrix(FILE_DESCRIPTOR(WARNING), 'Delta', Delta, .false., matrix_size)

@@ -27,7 +27,7 @@ contains
         context => computation_context%get_spheroidal_context(1, mode_item%m, mode_item%lnum, mode_item%lnum)
         ext = 0
 
-        do i = 1, mode_item%lnum
+        do i = 1, mode_item%lnum * 2
             ext = ext + real(solution(i) * IDEG(mod(3 * i, 4)) * context%layers(0,1)%s1(i, 1), knd)
         enddo
 
@@ -47,9 +47,9 @@ contains
         ext = 0
         k1 = computation_context%scattering_context%calculation_point%k
         m = mode_item%m
-        lnum = mode_item%lnum
+        lnum = mode_item%lnum * 2
 
-        context => computation_context%get_spheroidal_context(1, m, lnum, lnum)
+        context => computation_context%get_spheroidal_context(1, m, lnum, lnum / 2)
 
         do i = 1, lnum
             ext = ext + real(NEGIDEG(mod(i + m + 2, 4)) * &
@@ -85,6 +85,7 @@ contains
 
         integer :: i, j, m, md, lnum
         complex(knd), allocatable, dimension(:,:) :: Omega, Kappa, Tau
+        type(NoZeroesMatrix) :: nzomega, nzkappa, nztau
         real(knd) :: sca, k1
         real(knd), allocatable :: mult_coef(:)
         type(SpheroidalContext), pointer :: context
@@ -93,30 +94,35 @@ contains
         sca = 0
 
         m = mode_item%m
-        lnum = mode_item%lnum
-        context => computation_context%get_spheroidal_context(1, m, lnum, lnum)
+        lnum = 2 * mode_item%lnum
+        context => computation_context%get_spheroidal_context(1, m, lnum, lnum/2)
 
         allocate(Omega(lnum, lnum), Kappa(lnum, lnum), Tau(lnum, lnum))
 
+        call nzomega%setzeroes(1, lnum / 2)
+        call nztau%setzeroes(1, lnum / 2)
+        call nzkappa%setzeroes(-1, lnum / 2)
         md = context%layers(0,1)%maxd
 
         call fill_common_multiplier(m, md, mult_coef)
 
         ! write(*,*) 'start omega calculation'
-        call triple_dep_integral(Omega, m, context%layers(0,1)%legendre, context%layers(0,1)%legendre, &
+        call triple_dep_integral(nzOmega, m, context%layers(0,1)%legendre, context%layers(0,1)%legendre, &
         mult_coef, omega_c_lower, &
         omega_c_middle, &
         omega_c_upper)
+        Omega = to_normal(nzomega)
         ! write(*,*) 'end omega calculation'
         ! call calculate_omega(outside_layer, outside_layer, Omega, matrix_size)
         !call calculate_kappa(outside_layer, outside_layer, Kappa, matrix_size)
-        call double_dep_integral(Kappa, m, context%layers(0,1)%legendre, context%layers(0,1)%legendre, &
+        call double_dep_integral(nzKappa, m, context%layers(0,1)%legendre, context%layers(0,1)%legendre, &
         mult_coef, kappa_c_lower, kappa_c_upper)
+        Kappa = to_normal(nzkappa)
         ! call calculate_tau(outside_layer, outside_layer, Tau, matrix_size)
-        call single_dep_integral(Tau, m, context%layers(0,1)%legendre, context%layers(0,1)%legendre, &
+        call single_dep_integral(nzTau, m, context%layers(0,1)%legendre, context%layers(0,1)%legendre, &
         mult_coef, tau_c_middle)
         deallocate(mult_coef)
-
+        Tau = to_normal(nztau)
         do i = 1, lnum
             do j = 1, lnum
                 sca = sca + real(IDEG(mod(j + i * 3, 4)) * (&

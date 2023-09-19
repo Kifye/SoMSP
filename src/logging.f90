@@ -44,6 +44,81 @@ contains
         end if
     end subroutine log_matrix
 
+    subroutine log_nzmatrix(name, matrix, aznz, border)
+        character(*), intent(in) :: name
+        integer, optional, intent(in) :: border
+        type(NoZeroesMatrix), intent(in) :: matrix
+        logical, optional, intent(in) :: aznz
+        complex(knd), allocatable :: normal(:,:)
+
+        logical :: az_nz
+
+        integer :: border_row, border_column, i
+
+        if (.not. LOG_MATRICES) return
+
+        border_row = matrix%ms
+        border_column = matrix%ms
+        if (present(border)) then
+            if (border > 0) then
+            border_row = border
+            border_column = border
+
+            end if
+        end if
+
+        az_nz = .false.
+        if (present(aznz)) then
+            az_nz = aznz
+        endif
+
+        if (az_nz) then
+            write(LOG_FD, *) '{MATRIX} as nz: ', name, ' [', border_row, 'x', border_column, '] x 2:'
+            call matrix%log(name, border)
+        else
+            normal = to_normal(matrix)
+            call log_matrix(name, normal, border=border)
+        endif
+
+    end subroutine log_nzmatrix
+
+    subroutine log_nzmatrix2(name, matrix, aznz, border)
+        character(*), intent(in) :: name
+        integer, optional, intent(in) :: border
+        type(NoZeroesMatrix), intent(in) :: matrix(:,:)
+        logical, optional, intent(in) :: aznz
+        complex(knd), allocatable :: normal(:,:)
+
+        logical :: az_nz
+
+        integer :: border_row, border_column, i
+        integer :: j
+
+        if (.not. LOG_MATRICES) return
+
+        border_row = matrix(1,1)%ms
+        border_column = matrix(1,1)%ms
+        if (present(border)) then
+            if (border > 0) then
+            border_row = border
+            border_column = border
+
+            end if
+        end if
+
+        az_nz = .false.
+        if (present(aznz)) then
+            az_nz = aznz
+        endif
+        write(LOG_FD, *) '{MATRIX} nz: ', name, ' of shape [', size(matrix, 1), 'x', size(matrix, 2), ']:'
+        do i = 1, size(matrix, 1)
+            do j = 1, size(matrix, 2)
+                call log_nzmatrix(name//'_element_'//to_string(i)//','//to_string(j), matrix(i,j), az_nz, border)    
+            enddo
+        enddo        
+
+    end subroutine log_nzmatrix2
+
     subroutine log_time(name, duration)
         character(*), intent(in) :: name
         real(knd), intent(in) :: duration
