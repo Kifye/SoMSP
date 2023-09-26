@@ -520,6 +520,12 @@ end subroutine log_matrix_here
         rows = size(a,1)
         columns = size(a,2)
         ms = a(1,1)%ms
+        ! do i = 1, rows
+        !     do j = 1, columns
+        !         write(*,*) 'check a', i, j, 'allocated', allocated(a(i,j)%first), allocated(a(i,j)%second)
+        !     enddo
+        ! enddo
+        ! call backtrace()
         call assert_here(size(b) >= 2 * ms * columns, 'small b in nzmult2_by_linear')
         allocate(tmp(2 * ms, rows))
         do i = 1, rows

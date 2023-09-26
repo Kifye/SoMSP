@@ -264,8 +264,8 @@ contains
         if (LOG_BLOCKS) write(LOG_FD, *) '{BLOCK}{BEGIN} calculate integrals'
         if (LOG_INFO) write(LOG_FD, *) '{INFO} calculate base matrices of sizes ', lnum, 'x', lnum, 'x', nol
 
-        if (allocated(this%layer_contexts) .and. size(this%layer_contexts) /= nol) then
-            deallocate(this%layer_contexts)
+        if (allocated(this%layer_contexts)) then
+            if (size(this%layer_contexts) /= nol) deallocate(this%layer_contexts)
         end if
 
         if (.not. allocated(this%layer_contexts)) then

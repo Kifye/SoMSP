@@ -22,8 +22,8 @@ contains
 
         lnum = 2 * mode_item%lnum
 
-        if (allocated(initial) .and. size(initial) /= lnum) then
-            deallocate(initial)
+        if (allocated(initial)) then
+            if (size(initial) /= lnum) deallocate(initial)
         endif
 
         if(.not. allocated(initial)) then
@@ -54,8 +54,8 @@ contains
 
         lnum = 2 * mode_item%lnum
 
-        if (allocated(initial) .and. size(initial) /= 2 * lnum) then
-            deallocate(initial)
+        if (allocated(initial)) then
+            if ( size(initial) /= 2 * lnum) deallocate(initial)
         endif
 
         if(.not. allocated(initial)) then

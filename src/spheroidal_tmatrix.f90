@@ -327,7 +327,7 @@ contains
         complex(knd), dimension(2*computation_context%lnum) :: R11, R31, R12, R32, W1
         complex(knd), dimension(4 * computation_context%lnum) :: initial_corrector, solution_corrector
         type(NoZeroesMatrix), dimension(2,2) :: A11, A31, A31inv
-        type(NoZeroesMatrix) :: big_matr(4,2), tmp(4,4)
+        type(NoZeroesMatrix) :: big_matr(4,2), tmp(4,4), pip, stmp(2,2)
 
         if (LOG_BLOCKS) write(LOG_FD, *) '{BLOCK}{BEGIN} calculate tmatrix sph uv'
 
@@ -365,7 +365,8 @@ contains
                 computation_context%layer_contexts(nol)%Pi1, &
                 computation_context%layer_contexts(nol),&
                 lnum, &
-                big_matr(1 : 2,:))
+                stmp)
+        big_matr(1 : 2,1:2) = stmp
         ! A11
         call set_full_matrix(&
                 scattering_context%scatterer%spheroidal_type, &
@@ -378,7 +379,8 @@ contains
                 computation_context%layer_contexts(nol)%Pi1, &
                 computation_context%layer_contexts(nol),&
                 lnum, &
-                big_matr(3: 4 , :))
+                stmp)
+                big_matr(3: 4 , :) = stmp
         big_matr(1 : 2,:) = -big_matr(1 : 2,:)
         call cpu_time(finish)
         call log_time('tmatrix core', finish - start)    

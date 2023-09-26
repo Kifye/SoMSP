@@ -28,12 +28,25 @@ contains
         class(WavelengthPoint), intent(inout) :: this
         integer, intent(in) :: number_of_layers
 
+        integer :: i
+
+        ! this%eps = [(cmplx(1.0, 0.0, knd), i=0, number_of_layers)]
+        ! this%mu = this%eps
+
         if (allocated(this%eps) .and. size(this%eps) /= number_of_layers + 1) then
-            deallocate(this%eps, this%mu)
+            deallocate(this%eps)
+        end if
+
+        if (allocated(this%mu) .and. size(this%mu) /= number_of_layers + 1) then
+            deallocate(this%mu)
         end if
 
         if (.not.allocated(this%eps)) then
-            allocate(this%eps(0:number_of_layers), this%mu(0:number_of_layers))
+            allocate(this%eps(0:number_of_layers))
+        end if
+
+        if (.not.allocated(this%mu)) then
+            allocate(this%mu(0:number_of_layers))
         end if
 
     end subroutine check_and_reallocate_arrays
@@ -56,7 +69,8 @@ contains
 
         this%k = 2q0 * PI / lambda
 
-        call this%check_and_reallocate_arrays(number_of_layers)
+        ! call this%check_and_reallocate_arrays(number_of_layers)
+        allocate(this%eps(0:number_of_layers), this%mu(0:number_of_layers))
 
         this%eps = eps
         this%mu = mu
@@ -72,11 +86,13 @@ contains
         real(knd), intent(in) :: lambda
         integer, intent(in) :: number_of_layers
         complex(knd), intent(in) :: ri(0:number_of_layers)
+        complex(knd) :: mu(0:number_of_layers)
 
         integer :: i
 
+        mu = (/(cmplx(1q0, 0q0, knd), i=0,number_of_layers)/)
         call this%initialize_from_eps_and_mu(lambda, number_of_layers, ri**2, &
-                (/(cmplx(1q0, 0q0, knd), i=0,number_of_layers)/))
+                mu)
 
     end subroutine initialize_from_refractive_index
 

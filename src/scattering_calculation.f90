@@ -92,6 +92,10 @@ contains
             call log_node_queue(queue)
 
             accuracy = 0
+            ! write(*,*) 'queue is allocated 1', allocated(queue), size(queue)
+            ! do i = 1, size(queue)
+            !     write(*,*) 'node', i, 'is allocated', allocated(queue(i)%previous)
+            ! enddo
             mode_res = calculate_m(scattering_context, queue, m, lnum, sph_lnum)
 
             do i = 1, qlen
@@ -194,17 +198,17 @@ contains
 
         len = size(queue)
 
-        if (allocated(results) .and. (size(results) /= len)) then
-            deallocate(results)
-        endif
-        if (.not. allocated(results)) then
+        ! if (allocated(results) .and. (size(results) /= len)) then
+        !     deallocate(results)
+        ! endif
+        ! if (.not. allocated(results)) then
             allocate(results(len))
-        endif
+        ! endif
 
         if (LOG_BLOCKS) write(LOG_FD, *) '{BLOCK}{BEGIN} calculate spheroidal functions'
         call computation_context%initialize(m, lnum, spherical_lnum, scattering_context)
         if (LOG_BLOCKS) write(LOG_FD, *) '{BLOCK}{END} calculate spheroidal functions'
-
+        ! write(*,*) 'queue is allocated 2', allocated(queue)
         call calculate_mode_chain(scattering_context, computation_context, queue, results)
 
     end function calculate_m
@@ -219,6 +223,7 @@ contains
 
         do i = 1, size(queue)
             if (LOG_BLOCKS) write(LOG_FD, *) '{BLOCK}{BEGIN} calculate node ', i
+            ! write(*,*) 'queue is allocated 3', allocated(queue)
             if (size(queue(i)%previous) == 0) then
                 call calculate_mode(queue(i), scattering_context, computation_context, results(i))
             elseif (size(queue(i)%previous) == 1) then
@@ -282,8 +287,8 @@ contains
             ! allocates initial
             call funcs%initial_calculator(base_context, current_node%item, initial)
             res%solution = res%tmatrix * initial
-            write(LOG_FD,*) 'initial = ', initial
-            write(LOG_FD,*) 'solution = ', res%solution
+            ! write(LOG_FD,*) 'initial = ', initial
+            ! write(LOG_FD,*) 'solution = ', res%solution
 ! 
             res%factors%Qext = funcs%extinction_calculator(base_context, current_node%item, res%solution)
             res%factors%Qsca = funcs%scattering_calculator(base_context, current_node%item, res%solution)

@@ -39,8 +39,8 @@ contains
         real(knd), allocatable, dimension(:) :: common_multiplier
         real(knd) :: factorial
 
-        if (allocated(common_multiplier) .and. size(common_multiplier) < accuracy + 1) then
-            deallocate(common_multiplier)
+        if (allocated(common_multiplier)) then
+            if (size(common_multiplier) < accuracy + 1) deallocate(common_multiplier)
         end if
         if (.not. allocated(common_multiplier)) then
             allocate(common_multiplier(0:accuracy))

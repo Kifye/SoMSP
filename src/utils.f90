@@ -135,7 +135,11 @@ contains
         integer, intent(in) :: m, lnum, previous(:)
         logical, intent(in) :: need_calc, to_res
 
+        ! write(*,*) 'prev size is', size(previous)
         res = Node(info, ModeItem(m, lnum), previous, need_calc, to_res)
+        if (.not. allocated(res%previous)) then
+            allocate(res%previous(0))
+        endif
     end function construct_node
 
     logical function mode_operator_in(element, list) result(is_in)
@@ -171,12 +175,13 @@ contains
             allocate(this%tmatrix(ts(2),ts(2)))
         endif
 
-        if (allocated(this%solution) .and. size(this%solution) /= ts(1)) then
-            deallocate(this%solution)
+        if (allocated(this%solution)) then
+            if (size(this%solution) /= ts(1)) deallocate(this%solution)
         endif
 
         if (.not. allocated(this%solution)) then
             allocate(this%solution(ts(1)))
+            ! write(*,*) 'allocated solution', allocated(this%solution),'of size', size(this%solution)
         endif
     end subroutine initialize_mode_calculation_result
 
