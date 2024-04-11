@@ -256,7 +256,8 @@ contains
         this%arg = arg
         if (LOG_INFO) write(LOG_FD, *) '{INFO} calculated functions for m = ', this%m, ' lnum = ', this%lnum, ' c = ', this%c, &
             ' ksi = ', this%ksi, ' nu = ', this%arg
-
+            write(LOG_FD, *) 'calculated functions for m = ', this%m, ' lnum = ', this%lnum, ' c = ', this%c, &
+            ' ksi = ', this%ksi, ' nu = ', this%arg
         !write(*,*) 'r1 = ', r1(1)
         !  set function values
         if (need_radial) then
@@ -281,7 +282,14 @@ contains
             this%s1d = s1d * (10q0**s1d_exp)
         end if
         this%functions_calculated = .true.
-
+        write(LOG_FD,*) 'r1 = ', this%r1
+        write(LOG_FD,*) 'r1d = ', this%r1d
+        write(LOG_FD,*) 'r2 = ', this%r2
+        write(LOG_FD,*) 'r2d = ', this%r2d
+        write(LOG_FD,*) 'r3 = ', this%r3
+        write(LOG_FD,*) 'r3d = ', this%r3d
+        write(LOG_FD,*) 's1 = ', this%s1
+        write(LOG_FD,*) 's1d = ', this%s1d
         !call check_expected_accuracy(lnum, narg, naccr, naccs, naccds)
         deallocate(r1, r1_exp, r1d, r1d_exp, r2, r2_exp, r2d, r2d_exp)
         deallocate(s1, s1_exp, s1d, s1d_exp)
@@ -299,7 +307,7 @@ contains
                 deallocate(this%legendre)
             endif
 
-            this%maxd = min(2 * maxd + 1, MAXIMUM_D_COEFF_NUMBER)
+            this%maxd = max(min(2 * maxd + 1, MAXIMUM_D_COEFF_NUMBER), this%lnum)
             allocate(this%legendre(0:this%maxd, this%lnum))
             this%legendre = 0
             rad = radix(real(enr(1,1)))
@@ -311,7 +319,7 @@ contains
                 this%legendre(mod(i + 1, 2), i) = 1.0q0
                 !write(*,*) 'i = ', i, 'enr = ', enr(:100,i)
                 acts = this%maxd
-                do j = mod(abs(i + 1), 2) + 2, this%maxd, 2
+                do j = mod(abs(i + 1), 2) + 2, min(this%maxd, maxd), 2
                     value = this%legendre(j - 2, i) * enr(j / 2, i)
 !                    write(*,*) 'real_exp = ', exponent(real(value, knd)), 'imag_exp = ', exponent(imag(value))
                     legendre_exp(j) = exponent(real(value, knd)) + legendre_exp(j - 2)
@@ -348,6 +356,7 @@ contains
                 deallocate(enr)
             endif
         endif
+        call log_matrix('d', transpose(this%legendre(0:md, 1:lnum)))
         call cpu_time(finish)
         call log_time('legendre coefficients', finish - start)
 

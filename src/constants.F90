@@ -11,7 +11,7 @@ module constants
     real(knd), parameter :: DEFAULT_PAIR_INTEGRAL_ACCURACY = 1e-24_knd;
     real(4), parameter :: REVERSE_MATRIX_SIZE_RATIO = 1.0 !116.0 / 102.0
     integer, parameter :: MAXIMUM_MATRIX_SIZE = 400
-    integer, parameter :: MAXIMUM_D_COEFF_NUMBER = 100000
+    integer, parameter :: MAXIMUM_D_COEFF_NUMBER = 200000
     integer, parameter :: BUCKET_SIZE = 20
     integer, parameter :: GLOBAL_BUCKET = 10000000
     real(knd), parameter :: THETA_ADD = 1.0e-8_knd

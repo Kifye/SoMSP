@@ -270,6 +270,7 @@ contains
 
         complex(knd), allocatable :: initial(:)
         type(ModeFunctors) :: funcs
+        integer :: i
 
         call res%initialize(current_node%get_matrix_size())
 
@@ -280,7 +281,10 @@ contains
             funcs = get_mode_functions(current_node%info)
             ! allocates initial
             call funcs%initial_calculator(base_context, current_node%item, initial)
-            res%solution = matmul(res%tmatrix, initial)
+            ! res%solution = matmul(res%tmatrix, initial)
+            do i = 1, 2 * current_node%item%lnum
+                res%solution(i) = res%tmatrix(i,i)
+            enddo
 ! 
             res%factors%Qext = funcs%extinction_calculator(base_context, current_node%item, res%solution)
             res%factors%Qsca = funcs%scattering_calculator(base_context, current_node%item, res%solution)
@@ -309,6 +313,7 @@ contains
             call calculate_tmatrix_spheroidal_uv(&
                 scattering_context, &
                 context, &
+                computation_context, &
                 new_mode%info == MODE_SPH_TE_UV, &
                 new_tmatrix)
         else

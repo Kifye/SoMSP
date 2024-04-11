@@ -331,8 +331,8 @@ contains
         integer, intent(in) :: m, lnum, spherical_lnum
 
         queue = [ &
-            Node(MODE_SPH_TM_UV, m, lnum, [integer::], .true., .true.), &
-            Node(MODE_SPH_TE_UV, m, lnum, [integer::], .true., .true.) &
+            Node(MODE_SPH_TM_UV, m, lnum, [integer::], .true., .true.) &
+            ! Node(MODE_SPH_TE_UV, m, lnum, [integer::], .true., .true.) &
         ]
 
     end subroutine build_all_uv_queue
@@ -344,17 +344,18 @@ contains
         write(*,row_format) m, 'UV', &
             mode_res(1)%factors%Qext, &
             mode_res(1)%factors%Qsca, &
-            mode_res(1)%factors%qabs(), &
-            mode_res(2)%factors%Qext, &
-            mode_res(2)%factors%Qsca, &
-            mode_res(2)%factors%qabs()
+            mode_res(1)%factors%qabs(),  &
+            0q0,0q0,0q0
+            ! mode_res(2)%factors%Qext, &
+            ! mode_res(2)%factors%Qsca, &
+            ! mode_res(2)%factors%qabs()
     end subroutine print_all_uv_table_row
 
     function solution_places_all_uv(m) result(res)
         integer, intent(in) :: m
         type(SolutionForIndicatrix), allocatable :: res(:)
 
-        res = [SolutionForIndicatrix(m, UV, 1, 2)]
+        res = [SolutionForIndicatrix(m, UV, 1, 1)]
 
     end function solution_places_all_uv
 

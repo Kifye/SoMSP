@@ -266,8 +266,8 @@ contains
                         (Second(ix, l) * fcoef_middle(ix) + &
                                 Second(ix + 2, l) * fcoef_upper(ix))
 
-                do r = ix + 2, md - 2 * bucket + 1, 2 * bucket
-                    do k = r, r + 2 * (bucket - 1), 2
+                do r = ix + 2, md - 2 * bucket, 2 * bucket
+                    do k = r, r + 2 * bucket - 1, 2
                         value = First(k, n) * (Second(k - 2, l) * fcoef_lower(k) + &
                                 Second(k, l) * fcoef_middle(k) + Second(k + 2, l) * fcoef_upper(k))
                         !                        write(*,*) 'value = ', value, 'first = ', first(k, n), 'second = ', second(k, l),&

@@ -25,7 +25,7 @@ module spheroidal_context_module
         ! PQ
         complex(knd), allocatable, dimension(:, :, :) :: Delta
         ! UV
-        complex(knd), allocatable, dimension(:,:,:) ::  Q01, Q11, Q01Q11, Kappa, Gamma11, Epsilon, Pi1, Pi3
+        complex(knd), allocatable, dimension(:,:,:) ::  Q01, Q11, Q01Q11, Kappa, Gamma11, Epsilon, Pi1, Pi3, Sigma
         ! state: 0 - not initialized, 1 - only functions are calculated, 2 - for PQ, 3 - for UV
         integer :: state
     contains
@@ -143,12 +143,13 @@ contains
     end subroutine check_spheroidal_functions
 
     subroutine calculate_base_matrices(layer0, layer1, matrix_size, &
-        Delta, Q01, Q11, Q01Q11, Kappa, Gamma11, Epsilon, mult_coef)
+        Delta, Q01, Q11, Q01Q11, Kappa, Gamma11, Epsilon, Sigma, mult_coef)
         type(SpheroidalCalculation), intent(in) :: layer0, layer1
         integer, intent(in) :: matrix_size
         complex(knd), intent(out) :: Delta(matrix_size, matrix_size), &
                 Q01(matrix_size, matrix_size), Q11(matrix_size, matrix_size), Q01Q11(matrix_size, matrix_size), &
-                Kappa(matrix_size, matrix_size), Gamma11(matrix_size, matrix_size), Epsilon(matrix_size, matrix_size)
+                Kappa(matrix_size, matrix_size), Gamma11(matrix_size, matrix_size), Epsilon(matrix_size, matrix_size),&
+                Sigma(matrix_size, matrix_size)
 
         complex(knd), allocatable, dimension(:, :) :: tmp, result, identity
         real(knd) :: ksi
@@ -165,60 +166,77 @@ contains
         ksi = layer0%ksi
 
     !        call calculate_kappa(layer1, layer1, Kappa, matrix_size)
-        call double_dep_integral(Kappa, m, layer1%legendre, layer1%legendre, mult_coef, kappa_c_lower, kappa_c_upper)
+        call double_dep_integral(Kappa, m, layer0%legendre, layer0%legendre, mult_coef, kappa_c_lower, kappa_c_upper)
+        call log_matrix('Kappa11', Kappa)
+        ! Kappa = transpose(Kappa)
     !        call calculate_gamma(layer1, layer1, Gamma11, matrix_size)
-        call double_dep_integral(Gamma11, m, layer1%legendre, layer1%legendre, mult_coef, gamma_c_lower, gamma_c_upper)
+        call double_dep_integral(Gamma11, m, layer0%legendre, layer0%legendre, mult_coef, gamma_c_lower, gamma_c_upper)
+        call log_matrix('Gamma11', Gamma11)
+        ! Gamma11 = transpose(Gamma11)
     !        call calculate_epsilon(layer1, layer1, Epsilon, matrix_size)
         call triple_dep_integral(Epsilon, m, layer1%legendre, layer1%legendre, mult_coef, epsilon_c_lower, epsilon_c_middle, &
                 epsilon_c_upper)
+        call triple_dep_integral(Sigma, m, layer0%legendre, layer0%legendre, mult_coef, sigma_c_lower, sigma_c_middle, &
+            sigma_c_upper)
+            call log_matrix('Sigma', Sigma)
+        ! Sigma = transpose(Sigma)
+        ! call log_matrix('sigma', Sigma)
+        ! call log_matrix('Kappa11 * Gamma11', matmul(Kappa, Gamma11))
+        call single_dep_integral(Delta, m, layer0%legendre, layer1%legendre, mult_coef, delta_coef)
 
-        full_size = min(get_full_matrix_size(matrix_size), min(layer0%lnum, layer1%lnum))
+    !     full_size = min(get_full_matrix_size(matrix_size), min(layer0%lnum, layer1%lnum))
 
-        allocate(tmp(full_size, full_size), identity(full_size, full_size), result(full_size, full_size))
+    !     allocate(tmp(full_size, full_size), identity(full_size, full_size), result(full_size, full_size))
 
-        call get_identity_matrix(identity, full_size)
-    !        call calculate_omega(layer1, layer1, tmp, full_size)
-        call triple_dep_integral(tmp, m, layer1%legendre, layer1%legendre, mult_coef, omega_c_lower, omega_c_middle, &
-                omega_c_upper)
+    !     call get_identity_matrix(identity, full_size)
+    ! !        call calculate_omega(layer1, layer1, tmp, full_size)
+    !     call triple_dep_integral(tmp, m, layer1%legendre, layer1%legendre, mult_coef, omega_c_lower, omega_c_middle, &
+    !             omega_c_upper)
                 
-        tmp = (ksi**2 - layer0%spheroidal_type) * identity + layer0%spheroidal_type * tmp
-        call cpu_time(start)
-        call quick_inverse_matrix(tmp, full_size, result)
-        call cpu_time(finish)
-        ! write(*,*) 'inverse time = ', finish - start
-        Q11 = result(1:matrix_size, 1:matrix_size)
+    !     tmp = (ksi**2 - layer0%spheroidal_type) * identity + layer0%spheroidal_type * tmp
+    !     call cpu_time(start)
+    !     call quick_inverse_matrix(tmp, full_size, result)
+    !     call cpu_time(finish)
+    !     ! write(*,*) 'inverse time = ', finish - start
+    !     Q11 = result(1:matrix_size, 1:matrix_size)
 
-        identity = 0
-    !        call calculate_delta(layer0, layer1, identity, full_size)
-        call single_dep_integral(identity, m, layer0%legendre, layer1%legendre, mult_coef, delta_coef)
-    !        Delta = 0
-        Delta = identity(1:matrix_size, 1:matrix_size)
-        call cpu_time(start)
-        tmp = matmul(identity, result)
-        ! do j = 1, full_size
-        !     do k = 1, full_size
-        !         do i = 1, matrix_size
-        !             tmp(i,j) = tmp(i,j) + identity(i,k) * result(k,j)
-        !         end do
-        !     end do
-        ! end do
-        call cpu_time(finish)
-        ! write(*,*) 'first matmul time = ', finish - start
-        Q01 = tmp(1:matrix_size, 1:matrix_size)
-        call cpu_time(start)
-        result = matmul(tmp, result)
-        ! do j = 1, matrix_size
-        !     do k = 1, full_size
-        !         do i = 1, matrix_size
-        !             Q01Q11(i,j) = Q01Q11(i,j) + tmp(i,k) * result(k,j)
-        !         end do
-        !     end do
-        ! end do
-        call cpu_time(finish)
-        ! write(*,*) 'second matmul time = ', finish - start
-        Q01Q11 = result(1:matrix_size, 1:matrix_size)
+    !     identity = 0
+    ! !        call calculate_delta(layer0, layer1, identity, full_size)
+    !     call single_dep_integral(Delta, m, layer1%legendre, layer0%legendre, mult_coef, delta_coef)
+    !     ! call log_matrix('transDelta', Delta)
+    !     call single_dep_integral(identity, m, layer0%legendre, layer1%legendre, mult_coef, delta_coef)
+    ! !        Delta = 0
+    !     call quick_inverse_matrix(identity(1:matrix_size, 1:matrix_size), matrix_size, Delta)
+    !     ! call log_matrix('invDelta', Delta)
+    !     Delta = identity(1:matrix_size, 1:matrix_size)
+    !     call log_matrix('Delta12', Delta)
+    
+    !     call cpu_time(start)
+    !     tmp = matmul(identity, result)
+    !     ! do j = 1, full_size
+    !     !     do k = 1, full_size
+    !     !         do i = 1, matrix_size
+    !     !             tmp(i,j) = tmp(i,j) + identity(i,k) * result(k,j)
+    !     !         end do
+    !     !     end do
+    !     ! end do
+    !     call cpu_time(finish)
+    !     ! write(*,*) 'first matmul time = ', finish - start
+    !     Q01 = tmp(1:matrix_size, 1:matrix_size)
+    !     call cpu_time(start)
+    !     result = matmul(tmp, result)
+    !     ! do j = 1, matrix_size
+    !     !     do k = 1, full_size
+    !     !         do i = 1, matrix_size
+    !     !             Q01Q11(i,j) = Q01Q11(i,j) + tmp(i,k) * result(k,j)
+    !     !         end do
+    !     !     end do
+    !     ! end do
+    !     call cpu_time(finish)
+    !     ! write(*,*) 'second matmul time = ', finish - start
+    !     Q01Q11 = result(1:matrix_size, 1:matrix_size)
 
-        deallocate(tmp, identity, result)
+        ! deallocate(tmp, identity, result)
 
     end subroutine calculate_base_matrices
 
@@ -255,7 +273,7 @@ contains
         if (allocated(this%Delta) .and. any(shape(this%Delta) /= (/lnum, lnum, nol/))) then
             deallocate(this%Delta, this%Pi1, this%Pi3)
             if (allocated(this%Q01)) then
-                deallocate(this%Q01, this%Q11, this%Q01Q11, this%Kappa, this%Gamma11, this%Epsilon)
+                deallocate(this%Q01, this%Q11, this%Q01Q11, this%Kappa, this%Gamma11, this%Epsilon, this%Sigma)
             endif
         end if
 
@@ -267,7 +285,7 @@ contains
             if (.not. allocated(this%Q01)) then
             allocate(this%Q01(lnum, lnum, nol), this%Q11(lnum, lnum, nol), &
                     this%Q01Q11(lnum, lnum, nol), this%Kappa(lnum, lnum, nol), &
-                    this%Gamma11(lnum, lnum, nol), this%Epsilon(lnum, lnum, nol))
+                    this%Gamma11(lnum, lnum, nol), this%Epsilon(lnum, lnum, nol), this%Sigma(lnum, lnum, nol))
             endif
         endif
 
@@ -281,29 +299,29 @@ contains
             if (target_state == 3) then
                 call calculate_base_matrices(this%layers(0, j), this%layers(1, j), lnum, &
                         this%Delta(:,:,j), this%Q01(:,:,j), this%Q11(:,:,j), this%Q01Q11(:,:,j), &
-                        this%Kappa(:,:,j), this%Gamma11(:,:,j), this%Epsilon(:,:,j), mult_coef)
+                        this%Kappa(:,:,j), this%Gamma11(:,:,j), this%Epsilon(:,:,j), this%Sigma(:,:,j), mult_coef)
             endif
 
-            if (this%state < 2) then
-                if (j < nol) then
-                    call single_dep_integral(this%Pi1(:,:,j), this%m, this%layers(1,j)%legendre, this%layers(0,j + 1)%legendre, &
-                            p_coef, delta_coef)
-                    call mult_matr_by_i(this%Pi1(:,:,j), lnum)
-                    this%Pi3(:,:,j) = this%Pi1(:,:,j)
-                    call multiply_by_diag_left(this%Pi1(:,:,j), lnum, this%layers(1,j)%r1(1:lnum))
-                    call multiply_by_diag_right(this%Pi1(:,:,j), lnum, 1.0_knd / this%layers(0,j + 1)%r1(1:lnum))
-                    call multiply_by_diag_left(this%Pi3(:,:,j), lnum, this%layers(1,j)%r3(1:lnum))
-                    call multiply_by_diag_right(this%Pi3(:,:,j), lnum, 1.0_knd / this%layers(0,j + 1)%r3(1:lnum))
-                else
-                    call get_identity_matrix(this%Pi1(:,:,j), lnum)
-                    this%Pi3(:,:,j) = this%Pi1(:,:,j)
-                end if
+            ! if (this%state < 2) then
+            !     if (j < nol) then
+            !         call single_dep_integral(this%Pi1(:,:,j), this%m, this%layers(1,j)%legendre, this%layers(0,j + 1)%legendre, &
+            !                 p_coef, delta_coef)
+            !         call mult_matr_by_i(this%Pi1(:,:,j), lnum)
+            !         this%Pi3(:,:,j) = this%Pi1(:,:,j)
+            !         call multiply_by_diag_left(this%Pi1(:,:,j), lnum, this%layers(1,j)%r1(1:lnum))
+            !         call multiply_by_diag_right(this%Pi1(:,:,j), lnum, 1.0_knd / this%layers(0,j + 1)%r1(1:lnum))
+            !         call multiply_by_diag_left(this%Pi3(:,:,j), lnum, this%layers(1,j)%r3(1:lnum))
+            !         call multiply_by_diag_right(this%Pi3(:,:,j), lnum, 1.0_knd / this%layers(0,j + 1)%r3(1:lnum))
+            !     else
+            !         call get_identity_matrix(this%Pi1(:,:,j), lnum)
+            !         this%Pi3(:,:,j) = this%Pi1(:,:,j)
+            !     end if
 
-                if (target_state == 2) then
-                    call single_dep_integral(this%Delta(:,:,j), this%m, this%layers(0, j)%legendre, this%layers(1, j)%legendre, &
-                        mult_coef, delta_coef)
-                endif
-            endif
+            !     if (target_state == 2) then
+            !         call single_dep_integral(this%Delta(:,:,j), this%m, this%layers(0, j)%legendre, this%layers(1, j)%legendre, &
+            !             mult_coef, delta_coef)
+            !     endif
+            ! endif
         end do
 
         deallocate(mult_coef, p_coef)
@@ -330,7 +348,7 @@ contains
         endif
 
         if (allocated(this%Q01)) then
-            deallocate(this%Q01, this%Q11, this%Q01Q11, this%Kappa, this%Gamma11, this%Epsilon, this%Pi1, this%Pi3)
+            deallocate(this%Q01, this%Q11, this%Q01Q11, this%Kappa, this%Gamma11, this%Epsilon, this%Sigma, this%Pi1, this%Pi3)
         endif
 
     end subroutine delete_spheroidal_context
