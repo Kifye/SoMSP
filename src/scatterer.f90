@@ -93,12 +93,13 @@ contains
         if (f == 1) then
             this%ksi = ab / sqrt(ab * ab - 1q0)
             this%c0 = (1q0 / ab)**(1q0 / 3q0)
+            b = xv / ab**(1q0/3q0)
         else
             this%ksi = 1q0 / sqrt(ab * ab - 1q0)
             this%c0 = (1q0 / ab)**(2q0 / 3q0)
+            b = xv / ab**(2q0/3q0)
         endif
         this%c0 = xv * sqrt(ab**2q0 - 1q0) * this%c0
-        b = xv / ab**(1q0/3q0)
         a = ab * b
         this%d = (a * a - b * b) ** 0.5q0
 
