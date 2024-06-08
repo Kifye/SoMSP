@@ -84,6 +84,11 @@ contains
                     this%f(i + 1, i + 2) = 1.0_knd / sqrt((2.0_knd * i + 1) * (2.0_knd * i + 3))
                 end if
             end do
+            ! this%g(1) = -1.0_knd / 2.0_knd
+            ! do i = 2, lnum
+            !     this%g(i) = -1.0_knd / i / (i - 1.0_knd)
+            ! enddo
+            ! this%grev = 1.0 / this%g
         else
             do i = m, m + lnum - 1
                 if (i > m) then
