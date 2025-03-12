@@ -20,7 +20,7 @@ program factors
     character(1024) :: input_file, scatmatr_file, arg
     integer :: i,j,k
     logical :: need_far
-    type(ModeFactors) :: fact
+    type(ModeFactors) :: fact, avgfact
     call cpu_time(start)
     if (LOG_INFO) open(LOG_FD, FILE=LOG_FILENAME, status='replace')
     input_file = 'input.txt'
@@ -78,6 +78,9 @@ program factors
     if (need_far) call log_mode_factors('C_norm FAR_TM', get_normalized_c_factors_from_q(result%far_tm, shape))
     call log_mode_factors('C norm SPH_TE', get_normalized_c_factors_from_q(result%sph_te, shape))
     if (need_far) call log_mode_factors('C norm FAR_TE', get_normalized_c_factors_from_q(result%far_te, shape))
+    avgfact%Qext = (result%sph_te%Qext + result%sph_tm%Qext) / 2.0q0
+    avgfact%Qsca = (result%sph_te%Qsca + result%sph_tm%Qsca) / 2.0q0
+    call log_mode_factors('C_norm SPH_AVG', get_normalized_c_factors_from_q(avgfact, shape))
     ! enddo
     deallocate(rv, xv, ab, ri)
     ! close(120)
