@@ -44,6 +44,8 @@ set(SOURCES
     src/contexts/barber_context.f90
 )
 add_executable(main src/factors.f90 ${SOURCES})
+add_executable(compare_spvv8 src/testing/compare_spvv8.f90 ${SOURCES})
+add_executable(check_pis src/testing/check_pis.f90 ${SOURCES})
 
 if(USE_DOUBLE_PRECISION)
     message("utilize double precision")
