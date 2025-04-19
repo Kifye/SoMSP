@@ -86,7 +86,7 @@ module calculation_models
         procedure :: construct_calculation_model
     end interface CalculationModel
 
-    character(*), parameter :: row_format = '(1x,1I5,1x,1A12,1x,6E24.15)'
+    character(*), parameter :: row_format = '(1x,1I5,1x,1A12,1x,8E24.15)'
     ! 100 format(' ',1I5, ' ', 1A12,' ',6E24.15)
 contains
     subroutine build_queue_uv_pq_te_from_tm(m, lnum, spherical_lnum, queue)
@@ -156,18 +156,22 @@ contains
                 mode_res(1)%factors%Qext, &
                 mode_res(1)%factors%Qsca, &
                 mode_res(1)%factors%qabs(), &
+                mode_res(1)%factors%Qcpol, &
                 mode_res(5)%factors%Qext, &
                 mode_res(5)%factors%Qsca, &
-                mode_res(5)%factors%qabs()
+                mode_res(5)%factors%qabs(), &
+                mode_res(5)%factors%Qcpol
         endif
         if (m == 1) then
             write(*,row_format) m, 'PQ', &
                 mode_res(6)%factors%Qext, &
                 mode_res(6)%factors%Qsca, &
                 mode_res(6)%factors%qabs(), &
+                mode_res(6)%factors%Qcpol, &
                 mode_res(7)%factors%Qext, &
                 mode_res(7)%factors%Qsca , &
-                mode_res(7)%factors%qabs()  
+                mode_res(7)%factors%qabs(), &
+                mode_res(7)%factors%Qcpol  
         endif
     end subroutine print_row_uv_pq_te_from_tm
 
@@ -180,32 +184,40 @@ contains
                 mode_res(1)%factors%Qext, &
                 mode_res(1)%factors%Qsca, &
                 mode_res(1)%factors%qabs(), &
+                mode_res(1)%factors%Qcpol, &
                 mode_res(5)%factors%Qext, &
                 mode_res(5)%factors%Qsca, &
-                mode_res(5)%factors%qabs()
+                mode_res(5)%factors%qabs(), &
+                mode_res(5)%factors%Qcpol
             write(*,row_format) m, 'FAR_UV', &
                 mode_res(2)%factors%Qext, &
                 mode_res(2)%factors%Qsca, &
                 mode_res(2)%factors%qabs(), &
+                mode_res(2)%factors%Qcpol, &
                 mode_res(4)%factors%Qext, &
                 mode_res(4)%factors%Qsca, &
-                mode_res(4)%factors%qabs()
+                mode_res(4)%factors%qabs(), &
+                mode_res(4)%factors%Qcpol
         endif
         if (m == 1) then
             write(*,row_format) m, 'PQ', &
                 mode_res(6)%factors%Qext, &
                 mode_res(6)%factors%Qsca, &
                 mode_res(6)%factors%qabs(), &
+                mode_res(6)%factors%Qcpol, &
                 mode_res(7)%factors%Qext, &
                 mode_res(7)%factors%Qsca , &
-                mode_res(7)%factors%qabs()  
+                mode_res(7)%factors%qabs(), &
+                mode_res(7)%factors%Qcpol
             write(*,row_format) m, 'FAR_PQ', &
                 mode_res(8)%factors%Qext, &
                 mode_res(8)%factors%Qsca, &
                 mode_res(8)%factors%qabs(), &
+                mode_res(8)%factors%Qcpol, &
                 mode_res(9)%factors%Qext, &
                 mode_res(9)%factors%Qsca , &
-                mode_res(9)%factors%qabs()  
+                mode_res(9)%factors%qabs(), &
+                mode_res(9)%factors%Qcpol
         endif
     end subroutine print_row_uv_pq_te_from_tm_with_far
 
@@ -256,18 +268,22 @@ contains
                 mode_res(1)%factors%Qext, &
                 mode_res(1)%factors%Qsca, &
                 mode_res(1)%factors%qabs(), &
+                mode_res(1)%factors%Qcpol, &
                 mode_res(2)%factors%Qext, &
                 mode_res(2)%factors%Qsca, &
-                mode_res(2)%factors%qabs()
+                mode_res(2)%factors%qabs(), &
+                mode_res(2)%factors%Qcpol
         endif
         if (m == 1) then
             write(*,row_format) m, 'PQ', &
                 mode_res(3)%factors%Qext, &
                 mode_res(3)%factors%Qsca, &
                 mode_res(3)%factors%qabs(), &
+                mode_res(3)%factors%Qcpol, &
                 mode_res(4)%factors%Qext, &
                 mode_res(4)%factors%Qsca, &
-                mode_res(4)%factors%qabs()   
+                mode_res(4)%factors%qabs(), &
+                mode_res(4)%factors%Qcpol
         endif
     end subroutine print_row_uv_pq
 
@@ -315,16 +331,20 @@ contains
                 mode_res(1)%factors%Qext, &
                 mode_res(1)%factors%Qsca, &
                 mode_res(1)%factors%qabs(), &
+                mode_res(1)%factors%Qcpol, &
                 mode_res(6)%factors%Qext, &
                 mode_res(6)%factors%Qsca, &
-                mode_res(6)%factors%qabs()
+                mode_res(6)%factors%qabs(), &
+                mode_res(6)%factors%Qcpol
             write(*,row_format) m, 'TE_from_TM', &
                 mode_res(1)%factors%Qext, &
                 mode_res(1)%factors%Qsca, &
                 mode_res(1)%factors%qabs(), &
+                mode_res(1)%factors%Qcpol, &
                 mode_res(5)%factors%Qext, &
                 mode_res(5)%factors%Qsca, &
-                mode_res(5)%factors%qabs()
+                mode_res(5)%factors%qabs(), &
+                mode_res(5)%factors%Qcpol
         endif
     end subroutine print_row_compare_te
 
@@ -368,17 +388,21 @@ contains
                 mode_res(1)%factors%Qext, &
                 mode_res(1)%factors%Qsca, &
                 mode_res(1)%factors%qabs(), &
+                mode_res(1)%factors%Qcpol, &
                 mode_res(2)%factors%Qext, &
                 mode_res(2)%factors%Qsca, &
-                mode_res(2)%factors%qabs()
+                mode_res(2)%factors%qabs(), &
+                mode_res(2)%factors%Qcpol
         elseif (m == 1) then
             write(*,row_format) m, 'PQ', &
                 mode_res(1)%factors%Qext, &
                 mode_res(1)%factors%Qsca, &
                 mode_res(1)%factors%qabs(), &
+                mode_res(1)%factors%Qcpol, &
                 mode_res(2)%factors%Qext, &
                 mode_res(2)%factors%Qsca, &
-                mode_res(2)%factors%qabs()
+                mode_res(2)%factors%qabs(), &
+                mode_res(2)%factors%Qcpol
         endif
     end subroutine print_row_compare_uv_pq
 
@@ -420,9 +444,11 @@ contains
             mode_res(1)%factors%Qext, &
             mode_res(1)%factors%Qsca, &
             mode_res(1)%factors%qabs(), &
+            mode_res(1)%factors%Qcpol, &
             mode_res(2)%factors%Qext, &
             mode_res(2)%factors%Qsca, &
-            mode_res(2)%factors%qabs()
+            mode_res(2)%factors%qabs(), &
+            mode_res(2)%factors%Qcpol
     end subroutine print_all_uv_table_row
 
     function solution_places_all_uv(m) result(res)

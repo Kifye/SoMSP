@@ -177,6 +177,8 @@ contains
                 shape%ab, shape%alpha%value)
         get_c_factors_from_q%Qsca = convertQtoC(factors%Qsca, shape%spheroidal_type, shape%rv, &
                 shape%ab, shape%alpha%value)
+        get_c_factors_from_q%Qcpol = convertQtoC(factors%Qcpol, shape%spheroidal_type, shape%rv, &
+                shape%ab, shape%alpha%value)
 
     end function get_c_factors_from_q
 
@@ -187,6 +189,7 @@ contains
         result = get_c_factors_from_q(factors, shape)
         result%Qext = result%Qext / (PI * shape%rv ** 2)
         result%Qsca = result%Qsca / (PI * shape%rv ** 2)
+        result%Qcpol = result%Qcpol / (PI * shape%rv ** 2)
 
     end function get_normalized_c_factors_from_q
 

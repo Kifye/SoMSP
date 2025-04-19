@@ -42,9 +42,11 @@ set(SOURCES
     src/contexts/scattering_context.f90
     src/contexts/far_context.f90
     src/contexts/barber_context.f90
+    src/functions/bessel_function.f90
 )
 add_executable(main src/factors.f90 ${SOURCES})
 add_executable(compare_spvv8 src/testing/compare_spvv8.f90 ${SOURCES})
+add_executable(compare_spvv8_many_lambda src/testing/compare_spvv8_many_lambda.f90 ${SOURCES})
 add_executable(check_pis src/testing/check_pis.f90 ${SOURCES})
 
 if(USE_DOUBLE_PRECISION)

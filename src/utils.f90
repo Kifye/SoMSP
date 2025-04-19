@@ -65,6 +65,7 @@ module utils
     type :: ModeFactors
         real(knd) :: Qext
         real(knd) :: Qsca
+        real(knd) :: Qcpol
     contains
         procedure :: initialize => initialize_mode_factors
         procedure :: update_and_get_accuracy
@@ -255,6 +256,7 @@ contains
 
         this%Qext = 0
         this%Qsca = 0
+        this%Qcpol = 0
     
     end subroutine initialize_mode_factors
 
@@ -266,6 +268,7 @@ contains
         write(*,*) 'ext = ', this%Qext
         write(*,*) 'sca = ', this%Qsca
         write(*,*) 'abs = ', this%qabs()
+        write(*,*) 'cpol = ', this%Qcpol
 
     end subroutine log_mode_factors
 
@@ -286,11 +289,12 @@ contains
 
         this%Qext = this%Qext + update%Qext
         this%Qsca = this%Qsca + update%Qsca
+        this%Qcpol = this%Qcpol + update%Qcpol
 
-        if (max(abs(this%Qext), abs(this%Qsca)) < LOWEST_UPDATE) then
+        if (max(abs(this%Qext), abs(this%Qsca), abs(this%Qcpol)) < LOWEST_UPDATE) then
             res = LOWEST_UPDATE
         else
-            res = max(abs(update%Qext / this%Qext), abs(update%Qsca / this%Qsca))
+            res = max(abs(update%Qext / this%Qext), abs(update%Qsca / this%Qsca), abs(update%Qcpol / this%Qcpol))
         endif
     end function update_and_get_accuracy
 

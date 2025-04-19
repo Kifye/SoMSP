@@ -6,6 +6,8 @@ program check_pis
    use contexts
    use spheroidal_scatterer
    use spheroidal_indicatrix
+   use bessel_functions
+   use legendre_functions
    implicit none
 
    integer :: m, n, l, f, md, r, lnum, n0, l0, ssize, i
@@ -78,7 +80,10 @@ program check_pis
    !     write(*,*) r, outside%legendre(r,n) * inside%legendre(r,l) * p_coef(r)
    ! enddo
 
-   call compare_ratios(scat, alpha)
+   ! call compare_spheroidal_functions()
+   ! call compare_spheroidal_to_spherical()
+   call compare_spherical_to_spheroidal()
+   ! call compare_ratios(scat, alpha)
    ! call compare_convergeance(scat, alpha)
 
 end program check_pis
@@ -103,11 +108,11 @@ subroutine compare_ratios(scat, alpha)
    complex(knd), allocatable :: pi1(:,:), pi3(:,:)
    real(knd) :: etf, ets, xv(2), ab(2), xvmain, xvs(3)
    m = 1
-   lnum = 60
+   lnum = 200
    f = 1
    ab = [2q0, 2q0]
    ris = [cmplx(1.3, 0.0, knd), cmplx(1.7, 0.0, knd), cmplx(2.5, 0.0, knd)]
-   xvs = [0.01, 0.03, 0.09]
+   xvs = [0.1, 0.3, 0.9]
    do riind=1,3
       do xvind = 1,3
    ri = ris(riind)
@@ -116,7 +121,7 @@ subroutine compare_ratios(scat, alpha)
    xvmain = xvs(xvind)
    ! core = 1/2 of volume
    xv = [xvmain, xvmain / 2**(1.0q0/3.0q0)]
-   ab = [4q0, 4q0]
+   ! ab = [4q0, 4q0]
    k = 1q0
    d = [1.5q-2, 1.2q-2]
    ! c = d / 2 * k
@@ -131,8 +136,8 @@ subroutine compare_ratios(scat, alpha)
    write(*,*) 'k = ', k
    write(*,*) 'd = ', d
 
-   sigma2 = (d(1) + sqrt(d(1)**2 - d(2)**2))**2 *0.25
-   write(*,*) 'sigma^2 = ', sigma2
+   sigma2 = (c(1) + sqrt(c(1)**2 - c(2)**2))**2 / 16
+   write(*,'(A10,1x,E24.15)') 'sigma^2 = ', sigma2
 
    call inside%calculate(m, lnum, c(2), 1.1_knd, 1, [cos(alpha)], f)
    call outside%calculate(m, lnum, c(1), 1.1_knd, 1, [cos(alpha)], f)
@@ -146,7 +151,7 @@ subroutine compare_ratios(scat, alpha)
    p_coef = 1.0_knd / calculate_legendre_coef(m, md + 1)
    allocate(pi1(lnum, lnum), pi3(lnum, lnum))
    call single_dep_integral(pi1(:,:), m, outside%legendre, inside%legendre, p_coef, delta_coef)
-   call mult_matr_by_i(pi1(:,:), lnum)
+   ! call mult_matr_by_i(pi1(:,:), lnum)
    ! call log_matrix("pi1", pi1)
    ! call log_matrix("pi1*pi^T", matmul(pi1, transpose(pi1)))
    pi3 = pi1
@@ -157,16 +162,16 @@ subroutine compare_ratios(scat, alpha)
    ! call log_matrix('pi1', pi1)
    write(*,*) 'element ratios pi1'
    100 format('#',10A24)
-   101 format(' ',4E24.15)
+   101 format(' ',I5, 4E24.15)
    write(*, 100) 'first_row', 'second_row', 'first_column', 'second_column'
    do i = 1, lnum - 3, 2
-      fl = pi1(1, i + 2) / pi1(1, i)! * i**2! * (i + 2q0) / i
-      sl = pi1(2, i + 3) / pi1(2, i + 1)! * i**2! * (i + 3q0) / (i + 1q0)
-      fc = pi1(i + 2, 1) / pi1(i, 1)! * i**2 !* (i + 2q0) / i
-      sc = pi1(i + 3, 2) / pi1(i + 1, 2)!* i**2 !* (i + 3q0) / (i + 1q0)
+      fl = pi1(1, i + 2) / pi1(1, i) * i**2! * (i + 2q0) / i
+      sl = pi1(2, i + 3) / pi1(2, i + 1) * i**2! * (i + 3q0) / (i + 1q0)
+      fc = pi1(i + 2, 1) / pi1(i, 1) * i**2 !* (i + 2q0) / i
+      sc = pi1(i + 3, 2) / pi1(i + 1, 2)* i**2 !* (i + 3q0) / (i + 1q0)
       ! etf = ((i + 2q0) / i)**(m-1) * sigma2
       ! ets = ((i + 3q0) / (i + 1q0))**(m-1) * sigma2
-      write(*, 101) real(fl), real(sl), real(fc), real(sc) !, etf, ets
+      write(*, 101) i, real(fl), real(sl), real(fc), real(sc) !, etf, ets
    enddo
    ! write(*,*) 'element ratios pi3'
    ! write(*, 100) 'fl_re', 'fl_im', 'sl_re', 'sl_im', 'fc_re', 'fc_im', 'sc_re', 'sc_im'
@@ -186,7 +191,313 @@ enddo
 end subroutine compare_ratios
 
 subroutine compare_spheroidal_functions()
+   use regime
+   use scattering_calculation
+   use utils
+   use constants
+   use contexts
+   use spheroidal_scatterer
+   implicit none
+
+   type(SpheroidalScatterer) :: scat
+   type(SpheroidalCalculation) :: inside, outside
+   integer :: m, lnum, f, i, riind, xvind
+   integer :: md, l, n
+   real(knd), allocatable :: p_coef(:)
+   real(knd) :: alpha, k, d(2), sigma2
+
+   complex(knd) :: fl, sl, fc, sc, ri, c(2), ris(3), left, right
+   complex(knd), allocatable :: pi1(:,:), pi3(:,:)
+   real(knd) :: etf, ets, xv(2), ab(2), xvmain, xvs(3), ksi(2)
+   m = 1
+   lnum = 120
+   f = 1
+   ab = [2q0, 2q0]
+   ! ris = [cmplx(1.3, 0.0, knd), cmplx(1.7, 0.0, knd), cmplx(2.5, 0.0, knd)]
+   ! xvs = [0.01, 0.03, 0.09]
+   ! do riind=1,3
+   !    do xvind = 1,3
+   ri = cmplx(1.3, 0.0, knd)
+   ! write(*,*) 'd = ', scat%d
+   ! write(*,*) 'sigma^2 = ', (scat%d(1) + sqrt(scat%d(1)**2 - scat%d(2)**2))**2 *0.25
+   xvmain = 1q0
+   ! core = 1/2 of volume
+   xv = [xvmain, xvmain / 2**(1.0q0/3.0q0)]
+   ksi = ab / sqrt(ab * ab - 1q0)
+   ! ksi = [1.1q0, 1.1q0]
+   ! ab = [4q0, 4q0]
+   k = 1q0
+   ! d = [1.5q-2, 1.2q-2]
+   ! c = d / 2 * k
+   ! c = k * d / 2q0
+   c = xv * sqrt(ab**2q0 - 1q0) * (1q0 / ab)**(1q0 / 3q0)! * ri
+   ! c(2) = c(1) / 1.5q0
+   d = 2q0 * c / k
+   ! c = [2.0q0, 1.0q0]
+   write(*,*) 'xv = ', xv
+   write(*,*) 'ab = ', ab
+   write(*,*) 'ri = ', ri
+   write(*,*) 'c = ', c
+   write(*,*) 'ksi = ', ksi
+   ! write(*,*) 'd = ', d
+
+   ! sigma2 = (c(1) + sqrt(c(1)**2 - c(2)**2))**2
+   ! write(*,*) 'sigma^2 = ', sigma2
+
+   call inside%calculate(m, lnum, c(2), ksi(2), 1, [0.0q0], f)
+   call outside%calculate(m, lnum, c(1), ksi(1), 1, [0.0q0], f)
+
+   md = min(inside%maxd, outside%maxd)
+   allocate(p_coef(0:md))
+   p_coef = 1.0_knd / calculate_legendre_coef(m, md + 1)
+   allocate(pi1(lnum, lnum), pi3(lnum, lnum))
+   call single_dep_integral(pi1(:,:), m, outside%legendre, inside%legendre, p_coef, delta_coef)
+   call mult_matr_by_i(pi1(:,:), lnum)
+   left = 0
+   right = 0
+   do n = 1, lnum / 2, 2
+      left = inside%r1(n)*inside%s1(n, 1)
+      right = 0
+      do l = 1, lnum
+         right = right + pi1(l, n) * outside%r1(l) * outside%s1(l, 1)
+      enddo
+      write(*,*) n, abs(left - right) / (abs(left) + abs(right)), 'left = ', left, 'right = ', right
+   enddo
+   deallocate(p_coef, pi1, pi3)
+! enddo
+! enddo
+
 end subroutine compare_spheroidal_functions
+
+subroutine compare_spheroidal_to_spherical()
+   use regime
+   use scattering_calculation
+   use utils
+   use constants
+   use contexts
+   use spheroidal_scatterer
+   use legendre_functions
+   use bessel_functions
+   implicit none
+
+   type(SpheroidalScatterer) :: scat
+   type(SpheroidalCalculation) :: inside!, outside
+   type(BesselCalculation) :: bes
+   type(LegendreCalculation) :: leg
+   integer :: m, lnum, f, i, riind, xvind, j
+   integer :: md, l, n
+   real(knd), allocatable :: p_coef(:)
+   real(knd) :: alpha, k, d
+
+   complex(knd) :: fl, sl, fc, sc, ri, c, ris(3), left, right, nab(20, 20), mulnab(20, 20)
+   complex(knd), allocatable :: pi1(:,:), pi3(:,:)
+   real(knd) :: etf, ets, xv, ab, xvmain, xvs(3), ksi, eta, theta, r
+   m = 1
+   lnum = 120
+   f = 1
+   ab = 2q0
+   ! ris = [cmplx(1.3, 0.0, knd), cmplx(1.7, 0.0, knd), cmplx(2.5, 0.0, knd)]
+   ! xvs = [0.01, 0.03, 0.09]
+   ! do riind=1,3
+   !    do xvind = 1,3
+   ri = cmplx(1.3, 0.0, knd)
+   ! write(*,*) 'd = ', scat%d
+   ! write(*,*) 'sigma^2 = ', (scat%d(1) + sqrt(scat%d(1)**2 - scat%d(2)**2))**2 *0.25
+   xvmain = 1q0
+   ! core = 1/2 of volume
+   xv = xvmain
+   ksi = ab / sqrt(ab * ab - 1q0)
+   ! ksi = [1.1q0, 1.1q0]
+   eta = 0.0
+   ! ab = [4q0, 4q0]
+   k = 1q0 * real(ri)
+   ! d = [1.5q-2, 1.2q-2]
+   ! c = d / 2 * k
+   ! c = k * d / 2q0
+   c = xv * sqrt(ab**2q0 - 1q0) * (1q0 / ab)**(1q0 / 3q0) * ri
+   ! c(2) = c(1) / 1.5q0
+   ! c = [2.0q0, 1.0q0]
+   d = 2q0 * c / k
+   r = d / 2 * (ksi**2 + f * eta**2 - f)**0.5q0
+   theta = eta * ksi / (ksi**2 + f * eta**2 - f)**0.5q0 
+   write(*,*) 'xv = ', xv
+   write(*,*) 'ab = ', ab
+   write(*,*) 'ri = ', ri
+   write(*,*) 'c = ', c
+   write(*,*) 'ksi = ', ksi
+   write(*,*) 'd = ', d
+   write(*,*) 'k = ', k
+   write(*,*) 'r = ', r
+   write(*,*) 'kr = ', ri*r
+   write(*,*) 'theta = ', theta
+
+   ! sigma2 = (c(1) + sqrt(c(1)**2 - c(2)**2))**2
+   ! write(*,*) 'sigma^2 = ', sigma2
+
+   call inside%calculate(m, lnum, c, ksi, 1, [eta], f)
+   ! call outside%calculate(m, lnum, c(1), ksi(1), 1, [0.0q0], f)
+   call leg%set(m, lnum, eta * ksi / (ksi**2 + f * eta**2 - f)**0.5q0 )
+   call leg%calculate()
+   call bes%set(200, ri * r, 1q0)
+   call bes%calculate()
+   write(*,*) 'leg = ', leg%pr(1, 0:10)
+   write(*,*) 'legnorm = ', leg%norm(1:10)
+   write(*,*) 'bes = ', bes%sr(0:10)
+   nab = 0
+   ! allocate(p_coef(0:inside%maxd))
+   ! p_coef = 1.0_knd / calculate_legendre_coef(m, md + 1)
+   call fill_common_multiplier(m, inside%maxd, p_coef)
+   call single_dep_integral(nab, m, inside%legendre, inside%legendre, p_coef, delta_coef)
+   write(*,*) 'delta(c,c)'
+   do i = 1, 20
+      write(*,*) nab(i,:)
+   enddo
+   nab = 0
+   do i = 1, 20
+      do j = 1, 20
+         nab(i, j) = inside%legendre(j - 1, i) * p_coef(j-1) ** 0.5q0 !* cmplx(0q0, 1q0, knd) ** (i-j)
+      enddo
+   enddo
+   mulnab = matmul(nab, transpose(nab))
+   write(*,*) 'mulnab'
+   do i = 1, 20
+      write(*,*) mulnab(i,:)
+   enddo
+
+   ! md = min(inside%maxd, outside%maxd)
+   ! allocate(p_coef(0:md))
+   ! p_coef = 1.0_knd / calculate_legendre_coef(m, md + 1)
+   ! allocate(pi1(lnum, lnum), pi3(lnum, lnum))
+   ! call single_dep_integral(pi1(:,:), m, outside%legendre, inside%legendre, p_coef, delta_coef)
+   ! call mult_matr_by_i(pi1(:,:), lnum)
+   do n = 1, lnum / 2, 2
+      left = inside%r1(n)*inside%s1(n, 1)
+      right = 0
+      do l = 1, lnum
+         right = right + inside%legendre(l-1, n) * leg%pr(1, l) * bes%sr(l) * cmplx(0q0, 1q0, knd) ** (l-n)
+      enddo
+      write(*,*) n, abs(left - right) / (abs(left) + abs(right)), 'left = ', left, 'right = ', right, 'ratio=', right / left
+   enddo
+   ! deallocate(p_coef, pi1, pi3)
+! enddo
+! enddo
+
+end subroutine compare_spheroidal_to_spherical
+
+subroutine compare_spherical_to_spheroidal()
+   use regime
+   use scattering_calculation
+   use utils
+   use constants
+   use contexts
+   use spheroidal_scatterer
+   use legendre_functions
+   use bessel_functions
+   implicit none
+
+   type(SpheroidalScatterer) :: scat
+   type(SpheroidalCalculation) :: inside!, outside
+   type(BesselCalculation) :: bes
+   type(LegendreCalculation) :: leg
+   integer :: m, lnum, f, i, riind, xvind, j
+   integer :: md, l, n
+   real(knd), allocatable :: p_coef(:)
+   real(knd) :: alpha, k, d
+
+   complex(knd) :: fl, sl, fc, sc, ri, c, ris(3), left, right, nab(20, 20), mulnab(20, 20)
+   complex(knd), allocatable :: pi1(:,:), pi3(:,:)
+   real(knd) :: etf, ets, xv, ab, xvmain, xvs(3), ksi, eta, theta, r
+   m = 1
+   lnum = 120
+   f = 1
+   ab = 2q0
+   ! ris = [cmplx(1.3, 0.0, knd), cmplx(1.7, 0.0, knd), cmplx(2.5, 0.0, knd)]
+   ! xvs = [0.01, 0.03, 0.09]
+   ! do riind=1,3
+   !    do xvind = 1,3
+   ri = cmplx(1.3, 0.0, knd)
+   ! write(*,*) 'd = ', scat%d
+   ! write(*,*) 'sigma^2 = ', (scat%d(1) + sqrt(scat%d(1)**2 - scat%d(2)**2))**2 *0.25
+   xvmain = 1q0
+   ! core = 1/2 of volume
+   xv = xvmain
+   ksi = ab / sqrt(ab * ab - 1q0)
+   ! ksi = [1.1q0, 1.1q0]
+   eta = 0.0
+   ! ab = [4q0, 4q0]
+   k = 1q0 * real(ri)
+   ! d = [1.5q-2, 1.2q-2]
+   ! c = d / 2 * k
+   ! c = k * d / 2q0
+   c = xv * sqrt(ab**2q0 - 1q0) * (1q0 / ab)**(1q0 / 3q0) * ri
+   ! c(2) = c(1) / 1.5q0
+   ! c = [2.0q0, 1.0q0]
+   d = 2q0 * c / k
+   r = d / 2 * (ksi**2 + f * eta**2 - f)**0.5q0
+   theta = eta * ksi / (ksi**2 + f * eta**2 - f)**0.5q0 
+   write(*,*) 'xv = ', xv
+   write(*,*) 'ab = ', ab
+   write(*,*) 'ri = ', ri
+   write(*,*) 'c = ', c
+   write(*,*) 'ksi = ', ksi
+   write(*,*) 'd = ', d
+   write(*,*) 'k = ', k
+   write(*,*) 'r = ', r
+   write(*,*) 'kr = ', ri*r
+   write(*,*) 'theta = ', theta
+
+   ! sigma2 = (c(1) + sqrt(c(1)**2 - c(2)**2))**2
+   ! write(*,*) 'sigma^2 = ', sigma2
+
+   call inside%calculate(m, lnum, c, ksi, 1, [eta], f)
+   ! call outside%calculate(m, lnum, c(1), ksi(1), 1, [0.0q0], f)
+   call leg%set(m, lnum, eta * ksi / (ksi**2 + f * eta**2 - f)**0.5q0 )
+   call leg%calculate()
+   call bes%set(200, ri * r, 1q0)
+   call bes%calculate()
+   write(*,*) 'leg = ', leg%pr(1, 0:10)
+   write(*,*) 'legnorm = ', leg%norm(1:10)
+   write(*,*) 'bes = ', bes%sr(0:10)
+   nab = 0
+   ! allocate(p_coef(0:inside%maxd))
+   ! p_coef = 1.0_knd / calculate_legendre_coef(m, md + 1)
+   call fill_common_multiplier(m, inside%maxd, p_coef)
+   call single_dep_integral(nab, m, inside%legendre, inside%legendre, p_coef, delta_coef)
+   write(*,*) 'delta(c,c)'
+   do i = 1, 20
+      write(*,*) nab(i,:)
+   enddo
+   nab = 0
+   do i = 1, 20
+      do j = 1, 20
+         nab(i, j) = inside%legendre(j - 1, i) * p_coef(j-1) ** 0.5q0 !* cmplx(0q0, 1q0, knd) ** (i-j)
+      enddo
+   enddo
+   mulnab = matmul(nab, transpose(nab))
+   write(*,*) 'mulnab'
+   do i = 1, 20
+      write(*,*) mulnab(i,:)
+   enddo
+
+   ! md = min(inside%maxd, outside%maxd)
+   ! allocate(p_coef(0:md))
+   ! p_coef = 1.0_knd / calculate_legendre_coef(m, md + 1)
+   ! allocate(pi1(lnum, lnum), pi3(lnum, lnum))
+   ! call single_dep_integral(pi1(:,:), m, outside%legendre, inside%legendre, p_coef, delta_coef)
+   ! call mult_matr_by_i(pi1(:,:), lnum)
+   do n = 1, lnum / 2, 2
+      left =  leg%pr(1, n) * bes%sr(n) !inside%r1(n)*inside%s1(n, 1)
+      right = 0
+      do l = 1, lnum
+         right = right + inside%legendre(n-1, l) * inside%r1(l)*inside%s1(l, 1) * cmplx(0q0, 1q0, knd) ** (l-n) * p_coef(n-1) 
+      enddo
+      write(*,*) n, abs(left - right) / (abs(left) + abs(right)), 'left = ', left, 'right = ', right, 'ratio=', right / left
+   enddo
+   ! deallocate(p_coef, pi1, pi3)
+! enddo
+! enddo
+
+end subroutine compare_spherical_to_spheroidal
 
 real(knd) function rel_diff1(n, a, b)
 use regime

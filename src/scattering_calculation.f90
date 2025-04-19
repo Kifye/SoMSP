@@ -47,10 +47,10 @@ contains
         call cpu_time(start)
         call res%initialize()
 
-        99 format('#',1A5,' ', 1A12,' ',6A24)
+        99 format('#',1A5,' ', 1A12,' ',8A24)
             write(*,99) 'm', 'potentials', &
-            'Q_{TM}^{ext}', 'Q_{TM}^{sca}', 'Q_{TM}^{abs}', &
-            'Q_{TE}^{ext}', 'Q_{TE}^{sca}', 'Q_{TE}^{abs}'
+            'Q_{TM}^{ext}', 'Q_{TM}^{sca}', 'Q_{TM}^{abs}', 'Q_{TM}^{cpol}', &
+            'Q_{TE}^{ext}', 'Q_{TE}^{sca}', 'Q_{TE}^{abs}', 'Q_{TE}^{cpol}'
 
         sph_lnum = lnum
         if (present(spherical_lnum)) then
@@ -305,6 +305,7 @@ contains
 ! 
             res%factors%Qext = funcs%extinction_calculator(base_context, current_node%item, res%solution)
             res%factors%Qsca = funcs%scattering_calculator(base_context, current_node%item, res%solution)
+            res%factors%Qcpol = funcs%circularpolarization_calculator(base_context, current_node%item, res%solution)
             
             deallocate(initial)
         endif

@@ -1,4 +1,5 @@
-program compare_spvv8
+program compare_spvv8_many_lambda
+
     use regime
     use scattering_calculation
     use utils
@@ -8,10 +9,10 @@ program compare_spvv8
     use spheroidal_indicatrix
     implicit none
 
-    integer :: f, nol, matrix_size, spherical_lnum, minm, maxm, ntheta, nphi, rvind, alpind
+    integer :: f, nol, matrix_size, spherical_lnum, minm, maxm, ntheta, nphi, rvind, alpind, riind
     real(knd), allocatable :: rv(:), xv(:), ab(:)
     real(knd) :: alpha, lambda, theta0, theta1, phi0, phi1, prev_ext, prev_sca, start, finish
-    complex(knd), allocatable :: ri(:)
+    complex(knd), allocatable :: ri(:), ris(:)
     ! type(ScatteringQuery) :: query
     type(ScatteringResult):: result, res1, res2
     type(ScatteringContext) :: global_context
@@ -22,7 +23,7 @@ program compare_spvv8
     logical :: need_far
     type(ModeFactors) :: fact, avgfact, diffact
     real(knd), allocatable :: rvs(:)
-    real(knd), allocatable :: alphas(:)
+    real(knd), allocatable :: alphas(:), lambdas(:)
     call cpu_time(start)
     if (LOG_INFO) open(LOG_FD, FILE=LOG_FILENAME, status='replace')
     input_file = 'input.txt'
@@ -51,24 +52,33 @@ program compare_spvv8
         spherical_lnum = matrix_size * 1.3
         call cpu_time(finish)
     call log_time('prefix', finish - start)
-    rvs = [0.10165000000000000q0, 0.20126999999999998q0, 0.25686999999999999q0, 0.28320000000000001q0, &
-    0.31223000000000001q0, 0.34422999999999998q0, 0.37951999999999997q0, 0.50858999999999999q0, &
-    0.61819999999999997q0, 0.75142000000000009q0]
-    ! rvs = [0.29736q0,      &                                          
-    ! 0.31223q0,  &
-    ! 0.32784q0,  &
-    ! 0.34423q0,  &
-    ! 0.36145q0,  &
-    ! 0.37952q0,  &
-    ! 0.39849q0,  &
-    ! 0.41842q0,  &
-    ! 0.43934q0,  &
-    ! 0.46131q0,  &
-    ! 0.48437q0, & 
-    ! 0.50859q0]
+    rvs = [  0.16000q0]
+    lambdas = [ 1.002q+02,&
+    2.992q+01 ,&
+    1.001q+01,&
+    3.002q+00   ,&
+    1.000q+00   ,&
+    2.999q-01   ,&
+    9.481q-02   ,&
+    4.990q-02  ,&
+    4.005q-02   ,&
+    2.996q-02 ]
+    ris = [cmplx( 3.14758e+00 , 5.05666e+00, knd), &
+    cmplx( 1.33952e+00, 1.86188e+00, knd), &
+    cmplx(9.91696e-01, 8.17848e-01, knd ), &
+    cmplx(7.93805e-01, 3.12897e-01, knd), &
+    cmplx(7.73674e-01, 1.96323e-01, knd), &
+    cmplx(5.98916e-01, 4.89562e-01, knd), &
+    cmplx(2.89623e-02 , 4.35010e-01, knd), &
+    cmplx(-9.42650e-02, 1.59667e-01, knd), &
+    cmplx( -7.24923e-02, 6.80800e-02, knd), &
+    cmplx(-2.73124e-02, 5.36397e-02, knd)]
     alphas = [89.999999q0, 45.0q0, 0.000001q0]
     do rvind = 1, size(rvs)
+        do riind = 1, size(ris)
         do alpind = 1, size(alphas)
+    lambda = lambdas(riind)
+    ri = [cmplx(1.0q0, 0.0q0, knd), ris(riind) + cmplx(1.0q0, 0.0q0, knd)]
     rv(1) = rvs(rvind)
     xv = 2 * PI * rv / lambda
     alpha = alphas(alpind) * PI / 180.0q0
@@ -124,19 +134,17 @@ program compare_spvv8
     if (need_far) call log_mode_factors('C norm FAR_TE', get_normalized_c_factors_from_q(result%far_te, shape))
     avgfact%Qext = (result%sph_te%Qext + result%sph_tm%Qext) / 2.0q0
     avgfact%Qsca = (result%sph_te%Qsca + result%sph_tm%Qsca) / 2.0q0
-    avgfact%Qcpol = (result%sph_te%Qcpol + result%sph_tm%Qcpol) / 2.0q0
     avgfact = get_normalized_c_factors_from_q(avgfact, shape)
     call log_mode_factors('C_norm SPH_AVG', avgfact)
     diffact%Qext = (-result%sph_te%Qext + result%sph_tm%Qext) / 2.0q0
     diffact%Qsca = (-result%sph_te%Qsca + result%sph_tm%Qsca) / 2.0q0
-    diffact%Qcpol = (-result%sph_te%Qcpol + result%sph_tm%Qcpol) / 2.0q0
     diffact = get_normalized_c_factors_from_q(diffact, shape)
     call log_mode_factors('C_norm SPH_POL', diffact)
     write(*,*) 
-    write(115,'(3F10.6, 5E25.15)') rv(1), xv(1), alphas(alpind), avgfact%Qext, diffact%Qext, avgfact%Qsca, avgfact%qabs(), &
-    diffact%Qcpol
+    write(115,'(3F10.6, 4E25.15)') rv(1), xv(1), alphas(alpind), avgfact%Qext, diffact%Qext, avgfact%Qsca, avgfact%qabs()
     flush(115)
         enddo
+    enddo
     enddo
     ! enddo
     deallocate(rv, xv, ab, ri)
@@ -145,4 +153,4 @@ program compare_spvv8
     call log_time('postfix', finish - start)
     if (LOG_INFO) close(LOG_FD)
     close(115)
-end program compare_spvv8
+end program compare_spvv8_many_lambda

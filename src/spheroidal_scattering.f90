@@ -67,6 +67,59 @@ contains
 
     end function get_extinction_factor_sph_uv
 
+    function get_circular_polarization_factor_sph_pq(computation_context, mode_item, solution) result(cpol)
+        type(ComputationContext), intent(inout) :: computation_context
+        type(ModeItem), intent(in) :: mode_item
+        complex(knd), intent(in) :: solution(:)
+
+        real(knd) :: cpol
+
+        integer :: i
+        type(SpheroidalContext), pointer :: context
+
+        context => computation_context%get_spheroidal_context(1, mode_item%m, mode_item%lnum, mode_item%lnum)
+        cpol = 0
+
+        do i = 1, mode_item%lnum
+            cpol = cpol + aimag(solution(i) * IDEG(mod(3 * i, 4)) * context%layers(0,1)%s1(i, 1))
+        enddo
+
+        cpol = -cpol * 4.0q0 * computation_context%scattering_context%scatterer%common_factor(1)
+
+    end function get_circular_polarization_factor_sph_pq
+
+    function get_circular_polarization_factor_sph_uv(computation_context, mode_item, solution) result(cpol)
+        type(ComputationContext), intent(inout) :: computation_context
+        type(ModeItem), intent(in) :: mode_item
+        complex(knd), intent(in) :: solution(:)
+
+        real(knd) :: cpol, k1
+        integer :: i, m, lnum
+        type(SpheroidalContext), pointer :: context
+
+        cpol = 0
+        k1 = computation_context%scattering_context%calculation_point%k
+        m = mode_item%m
+        lnum = mode_item%lnum
+
+        context => computation_context%get_spheroidal_context(1, m, lnum, lnum)
+
+        do i = 1, lnum
+            cpol = cpol + aimag(NEGIDEG(mod(i + m + 2, 4)) * &
+                (k1 * solution(i) * context%layers(0,1)%s1(i, 1) - &
+                    solution(i + lnum) * NEGIDEG(1) * context%layers(0,1)%s1d(i, 1)))
+        enddo
+
+        if (m == 0) then
+            cpol = cpol * 0.5_knd
+        end if
+
+        cpol = cpol * 4.0_knd * &
+            computation_context%scattering_context%scatterer%common_factor(1) * &
+            computation_context%scattering_context%directions%alpha%angle_sin
+
+    end function get_circular_polarization_factor_sph_uv
+
     function get_scattering_factor_sph_pq(computation_context, mode_item, solution)result(sca)
         type(ComputationContext), intent(inout) :: computation_context
         type(ModeItem), intent(in) :: mode_item
@@ -201,6 +254,70 @@ contains
             ext = ext / 2
         end if
     end function get_extinction_factor_far_uv
+
+    real(knd) function get_circular_polarization_factor_far_pq(computation_context, mode_item, solution) result(cpol)
+        type(ComputationContext), intent(inout) :: computation_context
+        type(ModeItem), intent(in) :: mode_item
+        complex(knd), intent(in) :: solution(:)
+
+        type(LegendreCalculation) :: legendre
+        integer :: m, lnum, i
+        type(WavelengthPoint), pointer :: calculation_point
+        type(AngleType), pointer :: alpha
+        type(SpheroidalShape), pointer :: shape
+
+        m = mode_item%m
+        lnum = mode_item%lnum
+        calculation_point => computation_context%scattering_context%calculation_point
+        alpha => computation_context%scattering_context%directions%alpha
+        call legendre%set(m, lnum + m - 1, alpha%angle_cos)
+        call legendre%calculate()
+
+        cpol = 0q0
+
+        do i = 1, lnum
+            ! write(*,*) NEGIDEG(mod(i + legendre%m + 3, 4)), solution(i) , legendre%pr(1, i), sqrt(legendre%coef(i))
+            cpol = cpol + aimag(NEGIDEG(mod(i + m + 3, 4)) * solution(i) * legendre%pr(1, i) * sqrt(legendre%coef(i)))
+        enddo
+
+        shape => computation_context%scattering_context%scatterer%shape
+        cpol = convertCtoQ(-cpol * 4.0_knd * PI / calculation_point%k ** 2, shape%spheroidal_type, &
+        shape%rv, shape%ab, shape%alpha%value)
+        ! write(*,*) 'ext2 = ', ext
+    end function get_circular_polarization_factor_far_pq
+
+    real(knd) function get_circular_polarization_factor_far_uv(computation_context, mode_item, solution) result(cpol)
+        type(ComputationContext), intent(inout) :: computation_context
+        type(ModeItem), intent(in) :: mode_item
+        complex(knd), intent(in) :: solution(:)
+
+        type(LegendreCalculation) :: legendre
+        integer :: m, lnum, i
+        type(WavelengthPoint), pointer :: calculation_point
+        type(AngleType), pointer :: alpha
+        type(SpheroidalShape), pointer :: shape
+
+        m = mode_item%m
+        lnum = mode_item%lnum
+        calculation_point => computation_context%scattering_context%calculation_point
+        alpha => computation_context%scattering_context%directions%alpha
+        call legendre%set(m, lnum + m - 1, alpha%angle_cos)
+        call legendre%calculate()
+
+        cpol = 0q0
+
+        do i = 1, lnum
+            cpol = cpol + aimag(NEGIDEG(mod(i + m + 2, 4)) * (calculation_point%k * solution(i) * legendre%pr(1, i) + &
+                    solution(i + lnum) * IDEG(1) * legendre%pdr(1, i))) * sqrt(legendre%coef(i))! / (this%legendre%coef(i))
+        enddo
+
+        shape => computation_context%scattering_context%scatterer%shape
+        cpol = convertCtoQ(-cpol * 4.0_knd * PI / calculation_point%k ** 2 * alpha%angle_sin, &
+        shape%spheroidal_type, shape%rv, shape%ab, shape%alpha%value)
+        if (m == 0) then
+            cpol = cpol / 2
+        end if
+    end function get_circular_polarization_factor_far_uv
 
     real(knd) function get_scattering_factor_far_pq(computation_context, mode_item, solution) result(sca)
         type(ComputationContext), intent(inout) :: computation_context
