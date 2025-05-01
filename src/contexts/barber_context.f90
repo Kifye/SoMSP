@@ -85,11 +85,6 @@ contains
                     this%f(i + 1, i + 2) = 1.0_knd / sqrt((2.0_knd * i + 1) * (2.0_knd * i + 3))
                 end if
             end do
-            ! this%g(1) = -1.0_knd / 2.0_knd
-            ! do i = 2, lnum
-            !     this%g(i) = -1.0_knd / i / (i - 1.0_knd)
-            ! enddo
-            ! this%grev = 1.0 / this%g
         else
             do i = m, m + lnum - 1
                 if (i > m) then
@@ -116,10 +111,7 @@ contains
             end do
         else
             do i = m, m + lnum - 1
-                ! for m = 1
-                !                xd(i, i) = sqrt(2q0 / (2q0 * i + 1) * (i + 1) * i) * (2q0 * i + 1) / (2 * (i * (i + 1))**2)
                 this%xd(i - m + 1) = sqrt(legendre_coef(i - m + 1)) / (i * (i + 1.0_knd))
-                !                xdrev(i, i) = 1q0 / (sqrt(2q0 / (2q0 * i + 1) * (i + 1) * i) * (2q0 * i + 1) / (2 * (i * (i + 1))**2))
                 this%xdrev(i - m + 1) = 1.0_knd / this%xd(i - m + 1)
             end do
         end if
@@ -127,7 +119,6 @@ contains
         if (this%m > 0) then
             this%mishch_mult = (/ (sqrt(real(i, knd) * (i + 1) / legendre_coef(i - m + 1)), i = m, m + lnum - 1) /)
         else
-            ! this%mishch_mult(1) = 1
             this%mishch_mult = (/ (sqrt(real(i, knd) * (i + 1) / legendre_coef(i - m + 1)), i = 1, lnum) /)
         endif
 

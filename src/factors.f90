@@ -10,9 +10,8 @@ program factors
 
     integer :: f, nol, matrix_size, spherical_lnum, minm, maxm, ntheta, nphi
     real(knd), allocatable :: rv(:), xv(:), ab(:)
-    real(knd) :: alpha, lambda, theta0, theta1, phi0, phi1, prev_ext, prev_sca, start, finish
+    real(knd) :: alpha, lambda, theta0, theta1, phi0, phi1, start, finish
     complex(knd), allocatable :: ri(:)
-    ! type(ScatteringQuery) :: query
     type(ScatteringResult):: result
     type(ScatteringContext) :: global_context
     type(SpheroidalShape) :: shape
@@ -40,12 +39,8 @@ program factors
     call read_input(input_file, f, nol, rv, xv, ab, alpha, lambda, ri, matrix_size, spherical_lnum, minm, maxm, model, &
     ntheta, theta0, theta1, nphi, phi0, phi1)
 
-    ! open(120, file='compout')
-    ! prev_ext = 0
-    ! prev_sca = 0
-    ! do matrix_size = 8, 220, 4
-        spherical_lnum = matrix_size * 1.3
-        call cpu_time(finish)
+    spherical_lnum = matrix_size * 1.3
+    call cpu_time(finish)
     call log_time('prefix', finish - start)
     call cpu_time(start)
     call global_context%initialize(f, nol, xv, ab, alpha, lambda, ri, matrix_size, spherical_lnum, minm, maxm, &
@@ -58,13 +53,7 @@ program factors
     call log_time('calculation', finish - start)
     call cpu_time(start)
     call shape%set(f, rv(1), ab(1), alpha)
-    ! fact = get_normalized_c_factors_from_q(result%sph_tm, shape)
-    ! write(120, '(I5,1x,5E24.12)') matrix_size, fact%Qext, fact%Qsca, abs(fact%Qext - fact%Qsca) / abs(fact%Qext + fact%Qsca), &
-    ! abs(fact%Qext - prev_ext) / abs(fact%Qext + prev_ext), abs(fact%Qsca - prev_sca) / abs(fact%Qsca + prev_sca)
-    ! write(*, '(I5,1x,5E24.12)') matrix_size, fact%Qext, fact%Qsca, abs(fact%Qext - fact%Qsca) / abs(fact%Qext + fact%Qsca), &
-    ! abs(fact%Qext - prev_ext) / abs(fact%Qext + prev_ext), abs(fact%Qsca - prev_sca) / abs(fact%Qsca + prev_sca)
-    ! prev_ext = fact%Qext
-    ! prev_sca = fact%Qsca
+
     need_far = (model == 'uv_pq_te_from_tm_with_far')
     call log_mode_factors('Q SPH_TM', result%sph_tm)
     if (need_far) call log_mode_factors('Q FAR_TM', result%far_tm)
@@ -86,9 +75,9 @@ program factors
     polfact%Qsca = (-result%sph_te%Qsca + result%sph_tm%Qsca) / 2.0q0
     polfact%Qcpol = (-result%sph_te%Qcpol + result%sph_tm%Qcpol) / 2.0q0
     call log_mode_factors('C_norm SPH_POL', get_normalized_c_factors_from_q(polfact, shape))
-    ! enddo
+    
     deallocate(rv, xv, ab, ri)
-    ! close(120)
+
     call cpu_time(finish)
     call log_time('postfix', finish - start)
     if (LOG_INFO) close(LOG_FD)
