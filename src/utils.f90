@@ -65,6 +65,7 @@ module utils
     type :: ModeFactors
         real(knd) :: Qext
         real(knd) :: Qsca
+        real(knd) :: Qcpol
     contains
         procedure :: initialize => initialize_mode_factors
         procedure :: update_and_get_accuracy
@@ -80,7 +81,7 @@ module utils
     end type ModeCalculationResult
 
     type :: ScatteringResult
-        type(ModeFactors) :: sph_tm, sph_te
+        type(ModeFactors) :: sph_tm, sph_te, far_te, far_tm
     contains
         procedure :: initialize => initialize_scattering_result
         procedure :: update_and_get_accuracy => update_and_get_accuracy_scattering_result
@@ -255,6 +256,7 @@ contains
 
         this%Qext = 0
         this%Qsca = 0
+        this%Qcpol = 0
     
     end subroutine initialize_mode_factors
 
@@ -266,6 +268,7 @@ contains
         write(*,*) 'ext = ', this%Qext
         write(*,*) 'sca = ', this%Qsca
         write(*,*) 'abs = ', this%qabs()
+        write(*,*) 'cpol = ', this%Qcpol
 
     end subroutine log_mode_factors
 
@@ -274,6 +277,8 @@ contains
 
         call this%sph_te%initialize()
         call this%sph_tm%initialize()
+        call this%far_te%initialize()
+        call this%far_tm%initialize()
     
     end subroutine initialize_scattering_result
 
@@ -284,11 +289,12 @@ contains
 
         this%Qext = this%Qext + update%Qext
         this%Qsca = this%Qsca + update%Qsca
+        this%Qcpol = this%Qcpol + update%Qcpol
 
-        if (max(abs(this%Qext), abs(this%Qsca)) < LOWEST_UPDATE) then
+        if (max(abs(this%Qext), abs(this%Qsca), abs(this%Qcpol)) < LOWEST_UPDATE) then
             res = LOWEST_UPDATE
         else
-            res = max(abs(update%Qext / this%Qext), abs(update%Qsca / this%Qsca))
+            res = max(abs(update%Qext / this%Qext), abs(update%Qsca / this%Qsca), abs(update%Qcpol / this%Qcpol))
         endif
     end function update_and_get_accuracy
 
@@ -302,6 +308,10 @@ contains
             res = this%sph_te%update_and_get_accuracy(update)
         elseif (mode == MODE_SPH_TM_PQ .or. mode == MODE_SPH_TM_UV) then
             res = this%sph_tm%update_and_get_accuracy(update)
+        elseif (mode == MODE_FAR_TE_PQ .or. mode == MODE_FAR_TE_UV) then
+            res = this%far_te%update_and_get_accuracy(update)
+        elseif (mode == MODE_FAR_TM_PQ .or. mode == MODE_FAR_TM_UV) then
+            res = this%far_tm%update_and_get_accuracy(update)
         else
             res = 0
         endif
@@ -335,7 +345,7 @@ contains
         real(knd), allocatable, intent(inout) :: rv(:), xv(:), ab(:)
         real(knd), intent(inout) :: alpha, lambda, theta0, theta1, phi0, phi1
         complex(knd), allocatable, intent(inout) :: ri(:)
-        character(16) :: model
+        character(32) :: model
     
         character(1024) :: line, name, eq
         integer :: ios, i

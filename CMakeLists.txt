@@ -10,10 +10,6 @@ set (CMAKE_Fortran_FLAGS_DEBUG   "-O0 -g -fbounds-check -fmax-stack-var-size=655
 set(CMAKE_Fortran_MODULE_DIRECTORY "./modfiles")
 
 add_library(regime src/regime.F90)
-if(USE_DOUBLE_PRECISION)
-    message("utilize double precision")
-    target_compile_definitions(regime PUBLIC -DUSE_DOUBLE_PRECISION) 
-endif(USE_DOUBLE_PRECISION)
 
 set(SOURCES
     src/constants.F90
@@ -46,8 +42,18 @@ set(SOURCES
     src/contexts/scattering_context.f90
     src/contexts/far_context.f90
     src/contexts/barber_context.f90
+    src/functions/bessel_function.f90
 )
 add_executable(main src/factors.f90 ${SOURCES})
+add_executable(compare_spvv8 src/testing/compare_spvv8.f90 ${SOURCES})
+add_executable(compare_spvv8_many_lambda src/testing/compare_spvv8_many_lambda.f90 ${SOURCES})
+add_executable(check_pis src/testing/check_pis.f90 ${SOURCES})
+
+if(USE_DOUBLE_PRECISION)
+    message("utilize double precision")
+    add_compile_definitions(USE_DOUBLE_PRECISION=True) 
+    # target_compile_definitions(main PUBLIC -DUSE_DOUBLE_PRECISION=True) 
+endif(USE_DOUBLE_PRECISION)
 
 if(DEFINED LOG)
     message("print log to scattering.log")

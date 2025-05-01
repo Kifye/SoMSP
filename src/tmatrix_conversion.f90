@@ -442,8 +442,8 @@ contains
         ! for T_{UV}^{21}
         tmp = p(1:lnum, (lnum + 1):(2 * lnum))
         call multiply_by_diag_right(tmp, lnum, context%g)
-        new_tmatrix((lnum + 1):(2 * lnum), 1:lnum) = tmp + get_double_mult_right(p(1:lnum, 1:lnum), lnum, context%f) -&
-            get_double_mult_left(context%f, lnum, new_tmatrix(1:lnum, 1:lnum))
+        new_tmatrix((lnum + 1):(2 * lnum), 1:lnum) = (tmp + get_double_mult_right(p(1:lnum, 1:lnum), lnum, context%f) -&
+            get_double_mult_left(context%f, lnum, new_tmatrix(1:lnum, 1:lnum))) * k
 
         ! for T_{UV}^{22}
         tmp = p((lnum + 1):(2 * lnum), 1:lnum)

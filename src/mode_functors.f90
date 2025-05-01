@@ -31,11 +31,20 @@ implicit none
 
     type :: ModeFunctors
         procedure(calculate_initial), pointer, nopass :: initial_calculator
-        procedure(calculate_factor), pointer, nopass :: extinction_calculator, scattering_calculator
+        procedure(calculate_factor), pointer, nopass :: extinction_calculator, scattering_calculator, &
+        circularpolarization_calculator
     contains
     end type ModeFunctors
 
 contains
+    real(knd) function empty_calculator(computation_context, mode_item, solution)
+        type(ComputationContext), intent(inout) :: computation_context
+        type(ModeItem), intent(in) :: mode_item
+        complex(knd), intent(in) :: solution(:)
+
+        empty_calculator = 0.0_knd
+    end function empty_calculator
+
     function get_mode_functions(mode) result(funcs)
         type(ModeInfo), intent(in) :: mode
         type(ModeFunctors) :: funcs
@@ -44,20 +53,44 @@ contains
             funcs%initial_calculator => set_initial_uv_te
             funcs%extinction_calculator => get_extinction_factor_sph_uv
             funcs%scattering_calculator => get_scattering_factor_sph_uv
+            funcs%circularpolarization_calculator => get_circular_polarization_factor_sph_uv
         elseif (mode == MODE_SPH_TM_UV) then
             funcs%initial_calculator => set_initial_uv_tm
             funcs%extinction_calculator => get_extinction_factor_sph_uv
             funcs%scattering_calculator => get_scattering_factor_sph_uv
+            funcs%circularpolarization_calculator => get_circular_polarization_factor_sph_uv
         elseif (mode == MODE_SPH_TE_PQ) then
             funcs%initial_calculator => set_initial_pq_te
             funcs%extinction_calculator => get_extinction_factor_sph_pq
             funcs%scattering_calculator => get_scattering_factor_sph_pq
+            funcs%circularpolarization_calculator => get_circular_polarization_factor_sph_pq
         elseif (mode == MODE_SPH_TM_PQ) then
             funcs%initial_calculator => set_initial_pq_tm
             funcs%extinction_calculator => get_extinction_factor_sph_pq
             funcs%scattering_calculator => get_scattering_factor_sph_pq
+            funcs%circularpolarization_calculator => get_circular_polarization_factor_sph_pq
+        elseif (mode == MODE_FAR_TE_UV) then
+            funcs%initial_calculator => set_initial_far_uv_te
+            funcs%extinction_calculator => get_extinction_factor_far_uv
+            funcs%scattering_calculator => get_scattering_factor_far_uv
+            funcs%circularpolarization_calculator => get_circular_polarization_factor_far_uv
+        elseif (mode == MODE_FAR_TM_UV) then
+            funcs%initial_calculator => set_initial_far_uv_tm
+            funcs%extinction_calculator => get_extinction_factor_far_uv
+            funcs%scattering_calculator => get_scattering_factor_far_uv
+            funcs%circularpolarization_calculator => get_circular_polarization_factor_far_uv
+        elseif (mode == MODE_FAR_TE_PQ) then
+            funcs%initial_calculator => set_initial_far_pq_te
+            funcs%extinction_calculator => get_extinction_factor_far_pq
+            funcs%scattering_calculator => get_scattering_factor_far_pq
+            funcs%circularpolarization_calculator => get_circular_polarization_factor_far_pq
+        elseif (mode == MODE_FAR_TM_PQ) then
+            funcs%initial_calculator => set_initial_far_pq_tm
+            funcs%extinction_calculator => get_extinction_factor_far_pq
+            funcs%scattering_calculator => get_scattering_factor_far_pq
+            funcs%circularpolarization_calculator => get_circular_polarization_factor_far_pq
         else
-            call assert(.false., 'can only calculate factors for spheroidal modes')
+            call assert(.false., 'can only calculate factors for spheroidal and far modes')
         endif
     end function get_mode_functions
 

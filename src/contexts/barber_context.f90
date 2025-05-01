@@ -74,6 +74,7 @@ contains
 
         legendre_coef = calculate_legendre_coef(m, lnum + 1)
 
+        call cpu_time(start)
         if (m == 0) then
             do i = 0, lnum - 1
                 if (i > 0) then
@@ -110,10 +111,7 @@ contains
             end do
         else
             do i = m, m + lnum - 1
-                ! for m = 1
-                !                xd(i, i) = sqrt(2q0 / (2q0 * i + 1) * (i + 1) * i) * (2q0 * i + 1) / (2 * (i * (i + 1))**2)
                 this%xd(i - m + 1) = sqrt(legendre_coef(i - m + 1)) / (i * (i + 1.0_knd))
-                !                xdrev(i, i) = 1q0 / (sqrt(2q0 / (2q0 * i + 1) * (i + 1) * i) * (2q0 * i + 1) / (2 * (i * (i + 1))**2))
                 this%xdrev(i - m + 1) = 1.0_knd / this%xd(i - m + 1)
             end do
         end if
@@ -121,7 +119,6 @@ contains
         if (this%m > 0) then
             this%mishch_mult = (/ (sqrt(real(i, knd) * (i + 1) / legendre_coef(i - m + 1)), i = m, m + lnum - 1) /)
         else
-            ! this%mishch_mult(1) = 1
             this%mishch_mult = (/ (sqrt(real(i, knd) * (i + 1) / legendre_coef(i - m + 1)), i = 1, lnum) /)
         endif
 

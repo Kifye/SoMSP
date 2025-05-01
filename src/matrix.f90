@@ -254,7 +254,7 @@ contains
         complex(knd) :: A(n, n), L(n, n), U(n, n), P(n, n), res(n, n), res_low(n), det, mul
         !  if abs(a(i,i)) < EPS it is considered to be =0 and
         !  hence the matrix is degenerate
-        real(knd), parameter :: EPS = 1q-32
+        real(knd), parameter :: EPS = 1q-1024
 
         det = 1q0
 
