@@ -8,11 +8,12 @@ program factors
     use spheroidal_indicatrix
     implicit none
 
-    integer :: f, nol, matrix_size, spherical_lnum, minm, maxm, ntheta, nphi
+    integer :: f, nol, matrix_size, spherical_lnum, minm, maxm, ntheta, nphi, lnum
     real(knd), allocatable :: rv(:), xv(:), ab(:)
-    real(knd) :: alpha, lambda, theta0, theta1, phi0, phi1, start, finish
+    real(knd) :: alpha, lambda, theta0, theta1, phi0, phi1, start, finish, diff_res
     complex(knd), allocatable :: ri(:)
-    type(ScatteringResult):: result
+    real(knd), parameter :: qres_max_diff = 1.0e-7_knd
+    type(ScatteringResult):: result, old_result
     type(ScatteringContext) :: global_context
     type(SpheroidalShape) :: shape
     character(32) :: model
@@ -39,9 +40,37 @@ program factors
     call read_input(input_file, f, nol, rv, xv, ab, alpha, lambda, ri, matrix_size, spherical_lnum, minm, maxm, model, &
     ntheta, theta0, theta1, nphi, phi0, phi1)
 
-    spherical_lnum = matrix_size * 1.3
     call cpu_time(finish)
     call log_time('prefix', finish - start)
+    call cpu_time(start)
+
+    ! precalc matrix_size
+    lnum = max(int(matrix_size * 0.8), 4)
+    spherical_lnum = lnum * 1.3
+    write(*,*) 'try lnum=', lnum, 'spherical_lnum=', spherical_lnum
+    call global_context%initialize(f, nol, xv, ab, alpha, lambda, ri, lnum, spherical_lnum, 1, 1, &
+        0,0.0_knd,0.0_knd,0,0.0_knd,0.0_knd)
+    old_result = calculate_indicatrix(global_context, 1, 1, model, lnum, spherical_lnum, scatmatr_file)
+    
+    do lnum = max(int(matrix_size * 0.8), 4) + 4, 200, 4
+        spherical_lnum = lnum * 1.3
+        call global_context%initialize(f, nol, xv, ab, alpha, lambda, ri, lnum, spherical_lnum, 1, 1, &
+            ntheta, theta0, theta1, nphi, phi0, phi1)
+        result = calculate_indicatrix(global_context, 1, 1, model, lnum, spherical_lnum, scatmatr_file)
+        diff_res = diff_results(result, old_result)
+        write(*,*) 'try lnum=', lnum, 'spherical_lnum=', spherical_lnum, 'diff_res=', diff_res        
+        if (diff_res < qres_max_diff) then
+            exit
+        endif
+
+        old_result = result
+    enddo
+
+    matrix_size = lnum - 4
+    spherical_lnum = matrix_size * 1.3
+    write(*,*) 'selected lnum=', matrix_size, 'spherical_lnum=', spherical_lnum
+    call cpu_time(finish)
+    call log_time('precalc matrix size', finish - start)
     call cpu_time(start)
     call global_context%initialize(f, nol, xv, ab, alpha, lambda, ri, matrix_size, spherical_lnum, minm, maxm, &
     ntheta, theta0, theta1, nphi, phi0, phi1)
