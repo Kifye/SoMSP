@@ -87,18 +87,6 @@ module utils
         procedure :: update_and_get_accuracy => update_and_get_accuracy_scattering_result
     end type ScatteringResult
 
-    ! type :: ModeQuery
-    !     logical :: calculate_factors
-    ! contains
-    !     procedure :: need => need_calculate_scattering
-    ! end type ModeQuery
-
-    ! type :: ScatteringQuery
-    !     type(ModeQuery) :: by_mode(SPHEROIDAL_BASIS:MISHCH_BASIS, TE:TM, UV:PQ)
-    ! contains
-    !     procedure :: need => need_calculate_mode
-    ! end type ScatteringQuery
-
     interface operator(==)
         module procedure mode_info_eq, equal_pairs
     end interface
@@ -318,24 +306,20 @@ contains
 
     end function update_and_get_accuracy_scattering_result
 
-    ! logical function need_calculate_scattering(this)
-    !     class(ModeQuery), intent(in) :: this
+    function diff_factors(first, second) result(res)
+        class(ModeFactors), intent(in) :: first, second
+        real(knd) :: res
 
-    !     need_calculate_scattering = this%calculate_factors
-    ! end function need_calculate_scattering
+        res = max(abs(first%Qext - second%Qext) / abs(first%Qext + second%Qext), &
+            abs(first%Qsca - second%Qsca ) / abs(first%Qsca  + second%Qsca))
+    end function diff_factors
 
-    ! logical function need_calculate_mode(this, basis, tmode, potentials) result(res)
-    !     class(ScatteringQuery), intent(in) :: this
-    !     integer, intent(in) :: basis, tmode, potentials
+    function diff_results(first, second) result(res)
+        class(ScatteringResult), intent(in) :: first, second
+        real(knd) :: res
 
-    !     integer :: i
-        
-    !     res = this%by_mode(basis, tmode, potentials)%need()
-
-    !     do i = basis + 1, MISHCH_BASIS
-    !         res = res .or. this%by_mode(i, tmode, potentials)%need()
-    !     enddo
-    ! end function need_calculate_mode
+        res = max(diff_factors(first%sph_te, second%sph_te), diff_factors(first%sph_tm, second%sph_tm))
+    end function diff_results
 
     subroutine read_input(filename, f, nol, rv, xv, ab, alpha, lambda, ri, matrix_size, spherical_lnum, minm, maxm, model, &
         ntheta, theta0, theta1, nphi, phi0, phi1)
