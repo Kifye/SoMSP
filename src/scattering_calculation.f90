@@ -140,10 +140,13 @@ contains
         endif
 
         call cpu_time(start)
-        100 format('#',' ',6A24)
-        101 format(' ',2F8.2,' ',6F24.15)
+        100 format('#',' ',18A32)
+        101 format(' ',2F32.18,' ',16E32.18)
         write(SCAT_MATR_FD,100) 'theta', 'phi', &
-        'F_{11}', 'F_{21}', 'F_{33}', 'F_{43}'
+        'F_{11}', 'F_{21}', 'F_{31}', 'F_{41}',&
+        'F_{12}', 'F_{22}', 'F_{32}', 'F_{42}', &
+        'F_{13}', 'F_{23}', 'F_{33}', 'F_{43}', &
+        'F_{14}', 'F_{24}', 'F_{34}', 'F_{44}'
         ! write(*,100) 'theta', 'phi', &
         ! 'F_{11}', 'F_{21}', 'F_{33}', 'F_{43}'
         call print_scattering_matrix_bucket(&
@@ -178,15 +181,15 @@ contains
         complex(knd), dimension(2,2,nphi, ntheta) :: ampl
         real(knd) :: bucket(4,4), start, finish
         integer :: i, j
-        101 format(' ',6F32.18)
+        101 format(' ',2F32.18, 16E32.18)
         if (LOG_BLOCKS) write(LOG_FD, *) '{BLOCK}{BEGIN} calculate scattering matrix for bucket'
         call cpu_time(start)
         do j = 1, nphi
             do i = 1, ntheta
                 bucket = get_scattering_matrix(ampl(:,:,j,i))
                 write(SCAT_MATR_FD, 101) thetas(i)%value * 180q0 / PI, &
-                    phis(j)%value * 180q0 / PI, &
-                        bucket(1,1), bucket(2,1), bucket(3,3), bucket(4,3)
+                    phis(j)%value * 180q0 / PI, bucket !&
+                        ! bucket(1,1), bucket(1,2), bucket(2,1), bucket(3,3), bucket(4,3)
                 ! write(*,'(6F32.18)') thetas(i)%value * 180q0 / PI, &
                 ! phis(j)%value * 180q0 / PI, bucket(1,1), bucket(2,1), bucket(3,3), bucket(4,3)
             end do
